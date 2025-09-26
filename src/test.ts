@@ -10,65 +10,54 @@ async function testMCPClient() {
 
     // Create client instance
     const client = new IgrisAIMCPClient();
-    await client.connect();
+    
+    console.log('MCP Client created successfully');
+    console.log('Client connected:', client.isClientConnected());
 
-    // Get available tools
-    const tools = client.getAvailableTools();
-    console.log('Available tools:');
-    tools.forEach(tool => {
-      console.log(`- ${tool.name}: ${tool.description}`);
-    });
-
-    console.log('\n=== Testing Tool Handlers ===\n');
+    console.log('\n=== Testing MCP Client Methods ===\n');
 
     // Test token transfer analysis
     console.log('1. Testing token transfer analysis...');
     try {
-      const transferResult = await tools.find(t => t.name === 'analyze_token_transfers')?.handler({
-        tokenAddress: '0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C',
-        chain: 'ethereum',
-        timeframe: '24h'
-      });
-      console.log('Token Transfer Analysis Result:', JSON.stringify(transferResult, null, 2));
+      const transferData = await client.getTokenTransfers(
+        '0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C',
+        'ethereum',
+        '24h'
+      );
+      console.log('Token Transfer Data:', JSON.stringify(transferData, null, 2));
     } catch (error) {
-      console.error('Token transfer analysis test failed:', error);
+      console.error('Token transfer test failed:', error);
     }
 
     console.log('\n2. Testing token swap analysis...');
     try {
-      const swapResult = await tools.find(t => t.name === 'analyze_token_swaps')?.handler({
-        tokenAddress: '0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C',
-        chain: 'ethereum',
-        timeframe: '7d'
-      });
-      console.log('Token Swap Analysis Result:', JSON.stringify(swapResult, null, 2));
+      const swapData = await client.getTokenSwaps(
+        '0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C',
+        'ethereum',
+        '7d'
+      );
+      console.log('Token Swap Data:', JSON.stringify(swapData, null, 2));
     } catch (error) {
-      console.error('Token swap analysis test failed:', error);
+      console.error('Token swap test failed:', error);
     }
 
-    console.log('\n3. Testing comprehensive token insights...');
+    console.log('\n3. Testing comprehensive token analysis...');
     try {
-      const insightsResult = await tools.find(t => t.name === 'generate_token_insights')?.handler({
-        transferData: {
-          totalTransfers: 150,
-          uniqueAddresses: 45,
-          totalVolume: '1000000',
-          averageTransferSize: '6666.67',
-          topSenders: ['0x123...', '0x456...'],
-          topReceivers: ['0x789...', '0xabc...']
-        },
-        swapData: {
-          totalSwaps: 75,
-          averagePrice: '0.05',
-          priceChange: '+15%',
-          totalVolume: '500000',
-          liquidityChanges: '+5%'
-        },
-        analysisType: 'comprehensive'
-      });
-      console.log('Token Insights Result:', JSON.stringify(insightsResult, null, 2));
+      const transferData = await client.getTokenTransfers(
+        '0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C',
+        'ethereum',
+        '24h'
+      );
+      const swapData = await client.getTokenSwaps(
+        '0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C',
+        'ethereum',
+        '24h'
+      );
+      
+      const aiAnalysis = await client.generateTokenAnalysis(transferData, swapData);
+      console.log('AI Analysis Result:', aiAnalysis);
     } catch (error) {
-      console.error('Token insights test failed:', error);
+      console.error('Token analysis test failed:', error);
     }
 
     await client.disconnect();
