@@ -146,12 +146,10 @@ class TokenActivityTestClient {
   // Test AI-driven prompt execution
   private testAIPrompt(): void {
     const prompts = [
-      `Show me recent transfers for token ${this.tokenAddress}`,
-      `Get swap data for ${this.tokenAddress} on ethereum`,
-      `Analyze token activity for ${this.tokenAddress}`,
+      `Check if any tokens have been transferred to wallet address ${this.userAddress} today. Also check for any transfers sent from this wallet address.`
     ];
 
-    const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+    const randomPrompt = prompts[0];
     
     const message = {
       type: 'execute_prompt',

@@ -163,11 +163,6 @@ export class TokenActivityWebSocketServer {
     }
 
     try {
-      // Ensure MCP client is connected
-      if (!this.mcpClient.isClientConnected()) {
-        await this.mcpClient.connect();
-      }
-
       // Execute user prompt using AI-driven tool selection
       const result = await this.mcpClient.executeUserPrompt(userPrompt);
 
@@ -195,13 +190,8 @@ export class TokenActivityWebSocketServer {
     }
 
     try {
-      // Ensure MCP client is connected
-      if (!this.mcpClient.isClientConnected()) {
-        await this.mcpClient.connect();
-      }
-
-      // Use AI-driven approach to get token analysis
-      const prompt = `Analyze token ${tokenAddress} on ${chain} network. Get comprehensive data including transfers and swaps.`;
+      // Use AI-driven approach to get token analysis with wallet address context
+      const prompt = `Check if any tokens have been transferred to wallet address ${userAddress} today. Also check for any transfers sent from this wallet address. Analyze token ${tokenAddress} on ${chain} network for this wallet.`;
       const result = await this.mcpClient.executeUserPrompt(prompt);
 
       this.sendMessage(ws, {
@@ -229,13 +219,8 @@ export class TokenActivityWebSocketServer {
     // Monitor token activity every 30 seconds
     const interval = setInterval(async () => {
       try {
-        // Ensure MCP client is connected
-        if (!this.mcpClient.isClientConnected()) {
-          await this.mcpClient.connect();
-        }
-
-        // Get latest token data using AI-driven approach
-        const prompt = `Get latest activity data for token ${tokenAddress} on ${chain} network.`;
+        // Get latest token data using AI-driven approach with wallet context
+        const prompt = `Check for any recent token transfers to wallet address in the last hour. Also check for any transfers sent from this wallet address. Get latest activity data for token ${tokenAddress} on ${chain} network.`;
         const result = await this.mcpClient.executeUserPrompt(prompt);
         
         // Send updates to all subscribed connections

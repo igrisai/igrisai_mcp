@@ -8,6 +8,8 @@ export class IgrisAIMCPClient {
   private openRouterClient: OpenRouterClient;
   private isConnected: boolean = false;
   private availableTools: MCPToolInfo[] = [];
+  private availableResources: any[] = [];
+  private availablePrompts: any[] = [];
 
   constructor() {
     this.mcpClient = new Client({
@@ -59,6 +61,23 @@ export class IgrisAIMCPClient {
         },
         examples: [] // Could be populated from tool metadata if available
       }));
+
+      // Also fetch resources and prompts for better AI context
+      try {
+        const resources = await this.mcpClient.listResources();
+        console.log('Available MCP resources:', resources.resources.map(r => r.name));
+        
+        const prompts = await this.mcpClient.listPrompts();
+        console.log('Available MCP prompts:', prompts.prompts.map(p => p.name));
+        
+        // Store resources and prompts for AI context
+        this.availableResources = resources.resources;
+        this.availablePrompts = prompts.prompts;
+      } catch (error) {
+        console.warn('Failed to fetch resources/prompts:', error);
+        this.availableResources = [];
+        this.availablePrompts = [];
+      }
     } catch (error) {
       console.error('Failed to discover tools:', error);
       this.availableTools = [];
@@ -110,24 +129,35 @@ export class IgrisAIMCPClient {
     }
 
     try {
+      // Convert MCP tools to OpenRouter function format
+      const tools = this.availableTools.map(tool => ({
+        type: "function",
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.inputSchema
+        }
+      }));
+
       // Use AI to select the best tool for the user's prompt
       const toolSelection: AIToolSelection = await this.openRouterClient.selectToolForPrompt(
         userPrompt, 
-        this.availableTools
+        this.availableTools,
+        this.availableResources,
+        this.availablePrompts,
+        this.mcpClient
       );
 
-      console.log(`AI selected tool: ${toolSelection.selectedTool}`);
+      console.log(`AI conversation completed: ${toolSelection.selectedTool}`);
       console.log(`AI reasoning: ${toolSelection.reasoning}`);
       console.log(`AI parameters:`, toolSelection.parameters);
 
-      // Execute the AI-selected tool using generic method
-      const result = await this.executeTool(toolSelection.selectedTool, toolSelection.parameters);
-
+      // The AI has already executed all necessary tools in the conversation loop
       return {
         toolUsed: toolSelection.selectedTool,
         reasoning: toolSelection.reasoning,
         parameters: toolSelection.parameters,
-        result: result
+        result: toolSelection.parameters // The final result is in parameters
       };
     } catch (error) {
       console.error('Error executing user prompt:', error);
