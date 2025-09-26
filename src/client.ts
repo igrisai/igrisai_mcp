@@ -2,7 +2,6 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { OpenRouterClient } from './tools/openRouterClient.js';
 import { TokenTransferData, TokenSwapData } from './types/index.js';
-import { TokenAnalysisSchema } from './types/schemas.js';
 
 export class IgrisAIMCPClient {
   private mcpClient: Client;
