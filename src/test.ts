@@ -58,6 +58,14 @@ class TokenActivityTestClient {
         }
         break;
       
+      case 'prompt_execution_result':
+        console.log(`🤖 AI Prompt Execution Result:`);
+        console.log(`  🛠️  Tool Used: ${message.data?.toolUsed}`);
+        console.log(`  💭 Reasoning: ${message.data?.reasoning}`);
+        console.log(`  ⚙️  Parameters:`, JSON.stringify(message.data?.parameters, null, 2));
+        console.log(`  📊 Result:`, JSON.stringify(message.data?.result, null, 2));
+        break;
+      
       case 'error':
         console.error('❌ Server error:', message.error);
         break;
@@ -87,15 +95,21 @@ class TokenActivityTestClient {
       console.log('⏰ Test 3: Waiting for real-time updates (30 seconds)...');
     }, 5000);
 
-    // Test 4: Unsubscribe
+    // Test 4: AI-driven prompt execution
     setTimeout(() => {
-      console.log('📡 Test 4: Unsubscribing from token activity...');
+      console.log('🤖 Test 4: Testing AI-driven prompt execution...');
+      this.testAIPrompt();
+    }, 35000);
+
+    // Test 5: Unsubscribe
+    setTimeout(() => {
+      console.log('📡 Test 5: Unsubscribing from token activity...');
       this.unsubscribeFromToken();
     }, 40000);
 
-    // Test 5: Close connection
+    // Test 6: Close connection
     setTimeout(() => {
-      console.log('🔌 Test 5: Closing connection...');
+      console.log('🔌 Test 6: Closing connection...');
       this.close();
     }, 45000);
   }
@@ -124,6 +138,26 @@ class TokenActivityTestClient {
     
     this.ws.send(JSON.stringify(message));
     console.log(`📡 Subscribing to ${this.tokenAddress} activity on ethereum`);
+  }
+
+  // Test AI-driven prompt execution
+  private testAIPrompt(): void {
+    const prompts = [
+      `Show me recent transfers for token ${this.tokenAddress}`,
+      `Get swap data for ${this.tokenAddress} on ethereum`,
+      `Analyze token activity for ${this.tokenAddress}`,
+    ];
+
+    const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+    
+    const message = {
+      type: 'execute_prompt',
+      userAddress: this.userAddress,
+      userPrompt: randomPrompt,
+    };
+    
+    this.ws.send(JSON.stringify(message));
+    console.log(`🤖 Testing AI prompt: "${randomPrompt}"`);
   }
 
   // Unsubscribe from token activity updates

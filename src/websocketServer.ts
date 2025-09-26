@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 interface TokenActivityMessage {
-  type: 'token_activity_update' | 'error' | 'connection_established';
+  type: 'token_activity_update' | 'error' | 'connection_established' | 'prompt_execution_result';
   userAddress: string;
   tokenAddress?: string;
   chain?: string;
@@ -91,6 +91,10 @@ export class TokenActivityWebSocketServer {
         await this.handleTokenAnalysis(ws, userAddress, tokenAddress, chain);
         break;
       
+      case 'execute_prompt':
+        await this.handleUserPrompt(ws, userAddress, message.userPrompt);
+        break;
+      
       default:
         this.sendError(ws, `Unknown message type: ${type}`);
     }
@@ -149,6 +153,38 @@ export class TokenActivityWebSocketServer {
       if (!hasOtherSubscribers) {
         this.stopTokenMonitoring(tokenAddress);
       }
+    }
+  }
+
+  private async handleUserPrompt(ws: WebSocket, userAddress: string, userPrompt: string): Promise<void> {
+    if (!userPrompt) {
+      this.sendError(ws, 'User prompt is required');
+      return;
+    }
+
+    try {
+      // Ensure MCP client is connected
+      if (!this.mcpClient.isClientConnected()) {
+        await this.mcpClient.connect();
+      }
+
+      // Execute user prompt using AI-driven tool selection
+      const result = await this.mcpClient.executeUserPrompt(userPrompt);
+
+      this.sendMessage(ws, {
+        type: 'prompt_execution_result',
+        userAddress,
+        data: {
+          toolUsed: result.toolUsed,
+          reasoning: result.reasoning,
+          parameters: result.parameters,
+          result: result.result,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Error handling user prompt:', error);
+      this.sendError(ws, `Failed to execute prompt: ${error}`);
     }
   }
 

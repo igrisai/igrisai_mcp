@@ -1,13 +1,13 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { OpenRouterClient } from './tools/openRouterClient.js';
-import { TokenTransferData, TokenSwapData } from './types/index.js';
+import { TokenTransferData, TokenSwapData, MCPToolInfo, AIToolSelection } from './types/index.js';
 
 export class IgrisAIMCPClient {
   private mcpClient: Client;
   private openRouterClient: OpenRouterClient;
   private isConnected: boolean = false;
-  private availableTools: string[] = [];
+  private availableTools: MCPToolInfo[] = [];
 
   constructor() {
     this.mcpClient = new Client({
@@ -48,8 +48,17 @@ export class IgrisAIMCPClient {
       const tools = await this.mcpClient.listTools();
       console.log('Available MCP tools:', tools.tools.map(t => t.name));
       
-      // Store available tool names for later use
-      this.availableTools = tools.tools.map(t => t.name);
+      // Store complete tool information for AI selection
+      this.availableTools = tools.tools.map(tool => ({
+        name: tool.name,
+        description: tool.description || `Tool: ${tool.name}`,
+        inputSchema: {
+          type: 'object',
+          properties: tool.inputSchema?.properties || {},
+          required: tool.inputSchema?.required || []
+        },
+        examples: [] // Could be populated from tool metadata if available
+      }));
     } catch (error) {
       console.error('Failed to discover tools:', error);
       this.availableTools = [];
@@ -64,90 +73,25 @@ export class IgrisAIMCPClient {
     }
   }
 
-  async getTokenTransfers(tokenAddress: string, chain: string = 'ethereum', timeframe: string = '24h'): Promise<TokenTransferData> {
+  /**
+   * Generic tool execution using AI-driven tool selection
+   */
+  async executeTool(toolName: string, parameters: Record<string, any>): Promise<any> {
     if (!this.isConnected) {
       throw new Error('Not connected to MCP server');
     }
 
     try {
-      // Find a tool that might handle token transfers
-      const transferTool = this.findToolForTransfers();
-      
-      if (!transferTool) {
-        throw new Error('No transfer tool found in available MCP tools');
-      }
-
-      // Call the discovered tool
+      // Call the specified tool with provided parameters
       const result = await this.mcpClient.callTool({
-        name: transferTool,
-        arguments: {
-          tokenAddress,
-          chain,
-          timeframe,
-        },
+        name: toolName,
+        arguments: parameters,
       });
 
-      // Parse the result and return structured data
-      const resultText = (result.content as any)?.[0]?.text;
-      const parsedResult = resultText ? JSON.parse(resultText) : {};
-      
-      const transferData: TokenTransferData = {
-        totalTransfers: parsedResult.totalTransfers || 0,
-        uniqueAddresses: parsedResult.uniqueAddresses || 0,
-        totalVolume: parsedResult.totalVolume || '0',
-        averageTransferSize: parsedResult.averageTransferSize || '0',
-        topSenders: parsedResult.topSenders || [],
-        topReceivers: parsedResult.topReceivers || [],
-        timestamp: new Date().toISOString(),
-      };
-
-      return transferData;
+      return result;
     } catch (error) {
-      console.error('Error getting token transfers:', error);
-      throw new Error(`Failed to get token transfers: ${error}`);
-    }
-  }
-
-  async getTokenSwaps(tokenAddress: string, chain: string = 'ethereum', timeframe: string = '24h'): Promise<TokenSwapData> {
-    if (!this.isConnected) {
-      throw new Error('Not connected to MCP server');
-    }
-
-    try {
-      // Find a tool that might handle token swaps
-      const swapTool = this.findToolForSwaps();
-      
-      if (!swapTool) {
-        throw new Error('No swap tool found in available MCP tools');
-      }
-
-      // Call the discovered tool
-      const result = await this.mcpClient.callTool({
-        name: swapTool,
-        arguments: {
-          tokenAddress,
-          chain,
-          timeframe,
-        },
-      });
-
-      // Parse the result and return structured data
-      const resultText = (result.content as any)?.[0]?.text;
-      const parsedResult = resultText ? JSON.parse(resultText) : {};
-      
-      const swapData: TokenSwapData = {
-        totalSwaps: parsedResult.totalSwaps || 0,
-        averagePrice: parsedResult.averagePrice || '0',
-        priceChange: parsedResult.priceChange || '0%',
-        totalVolume: parsedResult.totalVolume || '0',
-        liquidityChanges: parsedResult.liquidityChanges || '0%',
-        timestamp: new Date().toISOString(),
-      };
-
-      return swapData;
-    } catch (error) {
-      console.error('Error getting token swaps:', error);
-      throw new Error(`Failed to get token swaps: ${error}`);
+      console.error(`Error executing tool ${toolName}:`, error);
+      throw new Error(`Failed to execute tool ${toolName}: ${error}`);
     }
   }
 
@@ -157,9 +101,9 @@ export class IgrisAIMCPClient {
     
     for (const tool of this.availableTools) {
       for (const keyword of transferKeywords) {
-        if (tool.toLowerCase().includes(keyword)) {
-          console.log(`Found potential transfer tool: ${tool}`);
-          return tool;
+        if (tool.name.toLowerCase().includes(keyword) || tool.description.toLowerCase().includes(keyword)) {
+          console.log(`Found potential transfer tool: ${tool.name}`);
+          return tool.name;
         }
       }
     }
@@ -173,9 +117,9 @@ export class IgrisAIMCPClient {
     
     for (const tool of this.availableTools) {
       for (const keyword of swapKeywords) {
-        if (tool.toLowerCase().includes(keyword)) {
-          console.log(`Found potential swap tool: ${tool}`);
-          return tool;
+        if (tool.name.toLowerCase().includes(keyword) || tool.description.toLowerCase().includes(keyword)) {
+          console.log(`Found potential swap tool: ${tool.name}`);
+          return tool.name;
         }
       }
     }
@@ -183,6 +127,47 @@ export class IgrisAIMCPClient {
     return null;
   }
 
+
+  /**
+   * Use AI to analyze user prompt and execute appropriate MCP tool
+   */
+  async executeUserPrompt(userPrompt: string): Promise<any> {
+    if (!this.isConnected) {
+      throw new Error('Not connected to MCP server');
+    }
+
+    if (this.availableTools.length === 0) {
+      throw new Error('No MCP tools available');
+    }
+
+    try {
+      // Use AI to select the best tool for the user's prompt
+      const toolSelection: AIToolSelection = await this.openRouterClient.selectToolForPrompt(
+        userPrompt, 
+        this.availableTools
+      );
+
+      console.log(`AI selected tool: ${toolSelection.selectedTool}`);
+      console.log(`AI reasoning: ${toolSelection.reasoning}`);
+      console.log(`AI parameters:`, toolSelection.parameters);
+
+      // Execute the AI-selected tool
+      const result = await this.mcpClient.callTool({
+        name: toolSelection.selectedTool,
+        arguments: toolSelection.parameters,
+      });
+
+      return {
+        toolUsed: toolSelection.selectedTool,
+        reasoning: toolSelection.reasoning,
+        parameters: toolSelection.parameters,
+        result: result
+      };
+    } catch (error) {
+      console.error('Error executing user prompt:', error);
+      throw new Error(`Failed to execute user prompt: ${error}`);
+    }
+  }
 
   async generateTokenAnalysis(transferData: TokenTransferData, swapData: TokenSwapData): Promise<string> {
     try {

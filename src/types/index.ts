@@ -42,3 +42,20 @@ export interface MCPToolDefinition {
   inputSchema: any;
   handler: (args: any) => Promise<any>;
 }
+
+export interface MCPToolInfo {
+  name: string;
+  description: string;
+  inputSchema: {
+    type: string;
+    properties: Record<string, any>;
+    required: string[];
+  };
+  examples?: string[];
+}
+
+export interface AIToolSelection {
+  selectedTool: string;
+  parameters: Record<string, any>;
+  reasoning: string;
+}
