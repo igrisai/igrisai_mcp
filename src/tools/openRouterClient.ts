@@ -188,6 +188,8 @@ CURRENT DATE AND TIME CONTEXT (UTC):
 - Current Time: ${currentTime} (UTC)
 - When users ask for "today", use: ${currentDate}
 - When users ask for "yesterday", use: ${new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+- When users ask for "recent" or "last few hours", use: ${new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString().split('T')[0]} to ${currentDate}
+- When users ask for "this week", use: ${new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} to ${currentDate}
 
 CRITICAL INSTRUCTIONS:
 1. When a user asks for blockchain data, immediately call the most appropriate tool
@@ -196,6 +198,9 @@ CRITICAL INSTRUCTIONS:
 4. If you have no more tools to call, provide your final analysis and conclusion
 5. For transfer queries, use the run_query tool to search for transfers involving the specified wallet address
 6. Use the current date context above when interpreting time-based queries like "today", "yesterday", etc.
+7. IMPORTANT: Always use LOWER() function for wallet address comparisons: WHERE LOWER(to) = LOWER('wallet_address')
+8. For recent transactions, use broader date ranges to ensure you don't miss recent activity
+9. If no results found, try querying both 'to' and 'from' fields to catch all transfers involving the wallet
 
 COMPLETION RULE: When you have gathered sufficient data and have no more tools to call, provide a comprehensive final response about the token transfers, balances, or requested blockchain data.`;
 
