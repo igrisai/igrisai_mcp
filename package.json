@@ -1,0 +1,36 @@
+{
+  "name": "igrisai-mcp",
+  "version": "1.0.0",
+  "description": "MCP client for OpenRouter AI with Graph MCP integration for social activity and on-chain transaction analysis",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "test": "tsx src/test.ts",
+    "server": "tsx src/server.ts",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "mcp",
+    "openrouter",
+    "graph",
+    "ethereum",
+    "blockchain",
+    "social-activity"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.18.2",
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
