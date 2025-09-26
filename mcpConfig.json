@@ -1,103 +1,33 @@
 {
   "mcpServers": {
+    "token-api": {
+      "command": "npx",
+      "args": ["@pinax/mcp", "--sse-url", "https://token-api.mcp.thegraph.com/sse"],
+      "env": {
+        "ACCESS_TOKEN": "<https://thegraph.market JWT Access Token>"
+      }
+    },
     "igrisai-mcp": {
       "command": "node",
       "args": ["dist/server.js"],
       "env": {
-        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}",
-        "GRAPH_API_KEY": "${GRAPH_API_KEY}",
-        "MCP_SERVER_URL": "http://localhost:3000"
+        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}"
       }
     }
   },
   "tools": {
-    "query_social_activity": {
-      "description": "Query social activity data from various platforms (Twitter, Telegram, Discord, Reddit)",
-      "parameters": {
-        "platform": {
-          "type": "string",
-          "enum": ["twitter", "telegram", "discord", "reddit"],
-          "description": "Social media platform to query"
-        },
-        "username": {
-          "type": "string",
-          "description": "Username or handle to analyze"
-        },
-        "timeframe": {
-          "type": "string",
-          "enum": ["1h", "24h", "7d", "30d"],
-          "description": "Time period for analysis",
-          "default": "24h"
-        }
-      }
-    },
-    "query_onchain_transactions": {
-      "description": "Query on-chain transaction data using The Graph protocol",
-      "parameters": {
-        "address": {
-          "type": "string",
-          "description": "Wallet address to analyze"
-        },
-        "chain": {
-          "type": "string",
-          "enum": ["ethereum", "polygon", "arbitrum", "optimism", "base"],
-          "description": "Blockchain network",
-          "default": "ethereum"
-        },
-        "timeframe": {
-          "type": "string",
-          "enum": ["1h", "24h", "7d", "30d"],
-          "description": "Time period for analysis",
-          "default": "24h"
-        },
-        "transactionType": {
-          "type": "string",
-          "enum": ["swap", "transfer", "mint", "burn", "all"],
-          "description": "Type of transactions to include",
-          "default": "all"
-        }
-      }
-    },
-    "analyze_token_performance": {
-      "description": "Analyze token performance combining social and on-chain data",
+    "analyze_token_transfers": {
+      "description": "Analyze token transfer events using Graph MCP and OpenRouter AI",
       "parameters": {
         "tokenAddress": {
           "type": "string",
-          "description": "Token contract address"
+          "description": "Token contract address to analyze"
         },
         "chain": {
           "type": "string",
           "enum": ["ethereum", "polygon", "arbitrum", "optimism", "base"],
           "description": "Blockchain network",
           "default": "ethereum"
-        },
-        "includeSocial": {
-          "type": "boolean",
-          "description": "Include social media analysis",
-          "default": true
-        },
-        "includeOnChain": {
-          "type": "boolean",
-          "description": "Include on-chain transaction analysis",
-          "default": true
-        }
-      }
-    },
-    "analyze_portfolio": {
-      "description": "Analyze portfolio performance across multiple addresses and chains",
-      "parameters": {
-        "addresses": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Array of wallet addresses to analyze"
-        },
-        "chains": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": ["ethereum", "polygon", "arbitrum", "optimism", "base"]
-          },
-          "description": "Blockchain networks to include"
         },
         "timeframe": {
           "type": "string",
@@ -107,65 +37,76 @@
         }
       }
     },
-    "generate_ai_analysis": {
-      "description": "Generate AI-powered analysis using OpenRouter",
+    "analyze_token_swaps": {
+      "description": "Analyze token swap events using Graph MCP and OpenRouter AI",
       "parameters": {
-        "data": {
+        "tokenAddress": {
+          "type": "string",
+          "description": "Token contract address to analyze"
+        },
+        "chain": {
+          "type": "string",
+          "enum": ["ethereum", "polygon", "arbitrum", "optimism", "base"],
+          "description": "Blockchain network",
+          "default": "ethereum"
+        },
+        "timeframe": {
+          "type": "string",
+          "enum": ["1h", "24h", "7d", "30d"],
+          "description": "Time period for analysis",
+          "default": "24h"
+        }
+      }
+    },
+    "generate_token_insights": {
+      "description": "Generate comprehensive token insights using OpenRouter AI",
+      "parameters": {
+        "transferData": {
           "type": "object",
-          "description": "Data to analyze (social activity, on-chain data, or both)"
+          "description": "Token transfer data from Graph MCP"
+        },
+        "swapData": {
+          "type": "object",
+          "description": "Token swap data from Graph MCP"
         },
         "analysisType": {
           "type": "string",
-          "enum": ["social", "onchain", "comprehensive", "trading"],
-          "description": "Type of analysis to generate"
+          "enum": ["comprehensive", "trading", "sentiment"],
+          "description": "Type of analysis to generate",
+          "default": "comprehensive"
         }
       }
     }
   },
   "examples": {
-    "social_activity_query": {
-      "tool": "query_social_activity",
-      "parameters": {
-        "platform": "twitter",
-        "username": "vitalikbuterin",
-        "timeframe": "24h"
-      }
-    },
-    "onchain_transaction_query": {
-      "tool": "query_onchain_transactions",
-      "parameters": {
-        "address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-        "chain": "ethereum",
-        "timeframe": "7d",
-        "transactionType": "swap"
-      }
-    },
-    "token_analysis": {
-      "tool": "analyze_token_performance",
+    "token_transfer_analysis": {
+      "tool": "analyze_token_transfers",
       "parameters": {
         "tokenAddress": "0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C",
         "chain": "ethereum",
-        "includeSocial": true,
-        "includeOnChain": true
-      }
-    },
-    "portfolio_analysis": {
-      "tool": "analyze_portfolio",
-      "parameters": {
-        "addresses": [
-          "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-          "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
-        ],
-        "chains": ["ethereum", "polygon"],
         "timeframe": "24h"
       }
     },
-    "ai_analysis": {
-      "tool": "generate_ai_analysis",
+    "token_swap_analysis": {
+      "tool": "analyze_token_swaps",
       "parameters": {
-        "data": {
-          "social": [{"platform": "twitter", "username": "example", "activity": {"posts": 10, "followers": 1000}}],
-          "onChain": [{"hash": "0x123...", "from": "0xabc...", "to": "0xdef...", "value": "1000"}]
+        "tokenAddress": "0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C",
+        "chain": "ethereum",
+        "timeframe": "7d"
+      }
+    },
+    "comprehensive_token_insights": {
+      "tool": "generate_token_insights",
+      "parameters": {
+        "transferData": {
+          "totalTransfers": 150,
+          "uniqueAddresses": 45,
+          "totalVolume": "1000000"
+        },
+        "swapData": {
+          "totalSwaps": 75,
+          "averagePrice": "0.05",
+          "priceChange": "+15%"
         },
         "analysisType": "comprehensive"
       }

@@ -4,43 +4,36 @@ export interface OpenRouterConfig {
   model?: string;
 }
 
-export interface GraphConfig {
-  apiKey: string;
-  baseUrl?: string;
-}
-
 export interface MCPConfig {
   openrouter: OpenRouterConfig;
-  graph: GraphConfig;
-  serverUrl?: string;
 }
 
-export interface SocialActivityData {
-  platform: string;
-  username: string;
-  activity: {
-    posts: number;
-    followers: number;
-    engagement: number;
-    sentiment: 'positive' | 'negative' | 'neutral';
-  };
+export interface TokenTransferData {
+  totalTransfers: number;
+  uniqueAddresses: number;
+  totalVolume: string;
+  averageTransferSize?: string;
+  topSenders?: string[];
+  topReceivers?: string[];
   timestamp: string;
 }
 
-export interface OnChainTransaction {
-  hash: string;
-  from: string;
-  to: string;
-  value: string;
-  token: string;
+export interface TokenSwapData {
+  totalSwaps: number;
+  averagePrice: string;
+  priceChange: string;
+  totalVolume: string;
+  liquidityChanges?: string;
+  timestamp: string;
+}
+
+export interface TokenInsights {
+  tokenAddress: string;
   chain: string;
+  transferData: TokenTransferData;
+  swapData: TokenSwapData;
+  aiAnalysis: string;
   timestamp: string;
-  type: 'swap' | 'transfer' | 'mint' | 'burn';
-}
-
-export interface GraphQueryResult {
-  data: any;
-  errors?: any[];
 }
 
 export interface MCPToolDefinition {

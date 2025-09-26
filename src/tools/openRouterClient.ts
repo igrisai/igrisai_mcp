@@ -78,17 +78,17 @@ export class OpenRouterClient {
   }
 
   /**
-   * Analyze social activity data using AI
+   * Analyze token transfer data using AI
    */
-  async analyzeSocialActivity(socialData: any[]): Promise<string> {
+  async analyzeTokenTransfers(transferData: any): Promise<string> {
     const messages: OpenRouterMessage[] = [
       {
         role: 'system',
-        content: `You are an expert blockchain and social media analyst. Analyze the provided social activity data and provide insights about user engagement, sentiment trends, and potential market implications. Be concise but informative.`,
+        content: `You are an expert blockchain analyst specializing in token transfer analysis. Analyze the provided token transfer data and provide insights about transfer patterns, volume trends, address behavior, and potential market implications. Be concise but informative.`,
       },
       {
         role: 'user',
-        content: `Please analyze this social activity data: ${JSON.stringify(socialData, null, 2)}`,
+        content: `Please analyze this token transfer data: ${JSON.stringify(transferData, null, 2)}`,
       },
     ];
 
@@ -101,17 +101,17 @@ export class OpenRouterClient {
   }
 
   /**
-   * Analyze on-chain transaction data using AI
+   * Analyze token swap data using AI
    */
-  async analyzeOnChainData(transactionData: any[]): Promise<string> {
+  async analyzeTokenSwaps(swapData: any): Promise<string> {
     const messages: OpenRouterMessage[] = [
       {
         role: 'system',
-        content: `You are an expert blockchain analyst. Analyze the provided on-chain transaction data and provide insights about trading patterns, volume trends, and potential market movements. Focus on actionable insights.`,
+        content: `You are an expert DeFi analyst specializing in token swap analysis. Analyze the provided token swap data and provide insights about trading patterns, price movements, liquidity changes, and potential market trends. Focus on actionable insights.`,
       },
       {
         role: 'user',
-        content: `Please analyze this on-chain transaction data: ${JSON.stringify(transactionData, null, 2)}`,
+        content: `Please analyze this token swap data: ${JSON.stringify(swapData, null, 2)}`,
       },
     ];
 
@@ -124,20 +124,21 @@ export class OpenRouterClient {
   }
 
   /**
-   * Generate comprehensive analysis combining social and on-chain data
+   * Generate comprehensive token insights combining transfer and swap data
    */
-  async generateComprehensiveAnalysis(
-    socialData: any[],
-    onChainData: any[]
+  async generateTokenInsights(
+    transferData: any,
+    swapData: any,
+    analysisType: string = 'comprehensive'
   ): Promise<string> {
     const messages: OpenRouterMessage[] = [
       {
         role: 'system',
-        content: `You are an expert blockchain and social media analyst. Provide a comprehensive analysis combining social activity and on-chain transaction data. Identify correlations, trends, and potential investment opportunities. Be thorough but concise.`,
+        content: `You are an expert blockchain analyst specializing in comprehensive token analysis. Provide a ${analysisType} analysis combining token transfer and swap data. Identify correlations, trends, and potential investment opportunities. Be thorough but concise.`,
       },
       {
         role: 'user',
-        content: `Please provide a comprehensive analysis combining this social activity data: ${JSON.stringify(socialData, null, 2)} and this on-chain data: ${JSON.stringify(onChainData, null, 2)}`,
+        content: `Please provide a ${analysisType} analysis combining this transfer data: ${JSON.stringify(transferData, null, 2)} and this swap data: ${JSON.stringify(swapData, null, 2)}`,
       },
     ];
 
@@ -147,28 +148,5 @@ export class OpenRouterClient {
     });
 
     return response.choices[0]?.message?.content || 'No analysis available';
-  }
-
-  /**
-   * Generate trading recommendations based on analysis
-   */
-  async generateTradingRecommendations(analysisData: any): Promise<string> {
-    const messages: OpenRouterMessage[] = [
-      {
-        role: 'system',
-        content: `You are a professional trading analyst. Based on the provided analysis data, generate actionable trading recommendations. Include risk assessment and potential entry/exit points. Always remind users that this is not financial advice.`,
-      },
-      {
-        role: 'user',
-        content: `Based on this analysis data, provide trading recommendations: ${JSON.stringify(analysisData, null, 2)}`,
-      },
-    ];
-
-    const response = await this.chatCompletion(messages, {
-      temperature: 0.2,
-      max_tokens: 600,
-    });
-
-    return response.choices[0]?.message?.content || 'No recommendations available';
   }
 }

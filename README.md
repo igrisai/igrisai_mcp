@@ -1,14 +1,14 @@
 # IgrisAI MCP Client
 
-A Model Context Protocol (MCP) client for OpenRouter AI with Graph MCP integration to analyze social activity and on-chain transactions across Ethereum and other blockchain networks.
+A Model Context Protocol (MCP) client for OpenRouter AI with Graph MCP integration to analyze token transfers and swaps across Ethereum and other blockchain networks.
 
 ## Features
 
-- **Social Activity Analysis**: Query and analyze social media activity from Twitter, Telegram, Discord, and Reddit
-- **On-Chain Transaction Analysis**: Analyze blockchain transactions using The Graph protocol
+- **Token Transfer Analysis**: Analyze token transfer events using Graph MCP and OpenRouter AI
+- **Token Swap Analysis**: Analyze token swap events and trading patterns
 - **AI-Powered Insights**: Generate comprehensive analysis using OpenRouter's AI models
 - **Multi-Chain Support**: Support for Ethereum, Polygon, Arbitrum, Optimism, and Base networks
-- **Portfolio Analysis**: Analyze multiple wallet addresses across different chains
+- **Comprehensive Token Insights**: Combine transfer and swap data for holistic analysis
 
 ## Prerequisites
 
