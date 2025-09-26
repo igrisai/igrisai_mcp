@@ -1,12 +1,13 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { IgrisAIMCPClient } from './client.js';
+import { DeadHandCheckResult } from './types/deadHand.js';
 import dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
 
 interface TokenActivityMessage {
-  type: 'token_activity_update' | 'error' | 'connection_established' | 'prompt_execution_result';
+  type: 'token_activity_update' | 'error' | 'connection_established' | 'prompt_execution_result' | 'deadhand_check_result' | 'deadhand_switch_triggered' | 'deadhand_timer_reset';
   userAddress: string;
   tokenAddress?: string;
   chain?: string;
@@ -27,6 +28,7 @@ export class TokenActivityWebSocketServer {
   private mcpClient: IgrisAIMCPClient;
   private connections: Map<string, WebSocketConnection> = new Map();
   private activityIntervals: Map<string, NodeJS.Timeout> = new Map();
+  private deadHandCallbacks: Map<string, (result: DeadHandCheckResult) => void> = new Map();
 
   constructor(port: number = 8080) {
     this.wss = new WebSocketServer({ port });
@@ -333,6 +335,151 @@ export class TokenActivityWebSocketServer {
     }
   }
 
+  /**
+   * Register a callback for dead hand check results
+   */
+  registerDeadHandCallback(userAddress: string, callback: (result: DeadHandCheckResult) => void): void {
+    this.deadHandCallbacks.set(userAddress, callback);
+  }
+
+  /**
+   * Unregister a dead hand callback
+   */
+  unregisterDeadHandCallback(userAddress: string): void {
+    this.deadHandCallbacks.delete(userAddress);
+  }
+
+  /**
+   * Execute dead hand check for a user
+   */
+  async executeDeadHandCheck(userAddress: string, timeoutSeconds: number): Promise<DeadHandCheckResult> {
+    try {
+      console.log(`Executing dead hand check for ${userAddress} (timeout: ${timeoutSeconds}s)`);
+      
+      // Create AI prompt for recent transaction check
+      const prompt = `Check for ALL token transfers (both received and sent) for wallet address ${userAddress} on polygon in the last ${timeoutSeconds} seconds. Include both ERC-20 tokens and native MATIC transfers. Provide a detailed analysis of any activity found.`;
+      
+      // Execute AI-driven analysis
+      const result = await this.mcpClient.executeUserPrompt(prompt);
+      
+      // Extract transaction data from AI result
+      const transactionData = result.parameters?.finalResponse || result.reasoning || 'No transaction data available';
+      const activityFound = this.determineActivityFromAIResponse(result.reasoning);
+      
+      const deadHandResult: DeadHandCheckResult = {
+        type: 'deadhand_check_result',
+        userAddress,
+        aiResponse: result.reasoning || 'Checking Graph token MCP for information',
+        transactionData: Array.isArray(transactionData) ? transactionData : [transactionData],
+        activityFound,
+        timestamp: new Date().toISOString()
+      };
+
+      // Notify registered callback if exists
+      const callback = this.deadHandCallbacks.get(userAddress);
+      if (callback) {
+        callback(deadHandResult);
+      }
+
+      // Broadcast to all connected clients
+      this.broadcastDeadHandResult(deadHandResult);
+
+      console.log(`Dead hand check completed for ${userAddress}. Activity found: ${activityFound}`);
+      return deadHandResult;
+
+    } catch (error) {
+      console.error(`Error executing dead hand check for ${userAddress}:`, error);
+      
+      const errorResult: DeadHandCheckResult = {
+        type: 'deadhand_check_result',
+        userAddress,
+        aiResponse: 'Error occurred while checking transactions',
+        transactionData: [],
+        activityFound: false,
+        timestamp: new Date().toISOString()
+      };
+
+      // Notify registered callback if exists
+      const callback = this.deadHandCallbacks.get(userAddress);
+      if (callback) {
+        callback(errorResult);
+      }
+
+      return errorResult;
+    }
+  }
+
+  /**
+   * Determine if activity was found based on AI response
+   */
+  private determineActivityFromAIResponse(aiResponse: string): boolean {
+    if (!aiResponse) return false;
+    
+    const response = aiResponse.toLowerCase();
+    
+    // Look for indicators of activity
+    const activityIndicators = [
+      'transfer found',
+      'transaction found',
+      'activity found',
+      'transfers identified',
+      'transactions identified',
+      'received',
+      'sent',
+      'transfer',
+      'transaction'
+    ];
+    
+    // Look for indicators of no activity
+    const noActivityIndicators = [
+      'no transfer',
+      'no transaction',
+      'no activity',
+      '0 transfer',
+      '0 transaction',
+      'no results',
+      'no data'
+    ];
+    
+    // Check for no activity indicators first
+    for (const indicator of noActivityIndicators) {
+      if (response.includes(indicator)) {
+        return false;
+      }
+    }
+    
+    // Check for activity indicators
+    for (const indicator of activityIndicators) {
+      if (response.includes(indicator)) {
+        return true;
+      }
+    }
+    
+    // Default to false if unclear
+    return false;
+  }
+
+  /**
+   * Broadcast dead hand result to all connected clients
+   */
+  private broadcastDeadHandResult(result: DeadHandCheckResult): void {
+    const message: TokenActivityMessage = {
+      type: 'deadhand_check_result',
+      userAddress: result.userAddress,
+      data: {
+        aiResponse: result.aiResponse,
+        transactionData: result.transactionData,
+        activityFound: result.activityFound
+      },
+      timestamp: result.timestamp
+    };
+
+    // Send to all connections
+    this.connections.forEach((connection) => {
+      this.sendMessage(connection.ws, message);
+    });
+  }
+
   async stop(): Promise<void> {
     // Clear all monitoring intervals
     this.activityIntervals.forEach((interval) => clearInterval(interval));
@@ -343,6 +490,9 @@ export class TokenActivityWebSocketServer {
       connection.ws.close();
     });
     this.connections.clear();
+    
+    // Clear dead hand callbacks
+    this.deadHandCallbacks.clear();
     
     // Disconnect MCP client
     await this.mcpClient.disconnect();
