@@ -1,21 +1,28 @@
-# IgrisAI MCP Client
+# IgrisAI Token Activity WebSocket Server
 
-A Model Context Protocol (MCP) client for OpenRouter AI with Graph MCP integration to analyze token transfers and swaps across Ethereum and other blockchain networks.
+A WebSocket server that provides real-time token activity monitoring using Graph MCP server for blockchain data and OpenRouter AI for analysis.
 
 ## Features
 
-- **Token Transfer Analysis**: Analyze token transfer events using Graph MCP and OpenRouter AI
-- **Token Swap Analysis**: Analyze token swap events and trading patterns
-- **AI-Powered Insights**: Generate comprehensive analysis using OpenRouter's AI models
+- **Real-time Token Monitoring**: WebSocket-based real-time token activity updates
+- **Graph MCP Integration**: Uses The Graph's MCP server for blockchain data
+- **AI-Powered Analysis**: OpenRouter AI integration for comprehensive token insights
 - **Multi-Chain Support**: Support for Ethereum, Polygon, Arbitrum, Optimism, and Base networks
-- **Comprehensive Token Insights**: Combine transfer and swap data for holistic analysis
+- **User Address Tracking**: Track token activity for specific user addresses
+
+## Architecture
+
+This is a **WebSocket server** that acts as an **MCP client** to:
+1. Connect to The Graph MCP server for token data
+2. Provide real-time WebSocket endpoints for clients
+3. Use OpenRouter AI for analysis and insights
 
 ## Prerequisites
 
 - Node.js 18+ 
 - npm or pms package manager
 - OpenRouter API key
-- The Graph API key (optional but recommended)
+- The Graph Market JWT Access Token
 
 ## Installation
 
@@ -38,8 +45,7 @@ cp env.example .env
 Edit `.env` and add your API keys:
 ```
 OPENROUTER_API_KEY=your_openrouter_api_key_here
-GRAPH_API_KEY=your_graph_api_key_here
-MCP_SERVER_URL=http://localhost:3000
+GRAPH_ACCESS_TOKEN=your_graph_market_jwt_access_token_here
 ```
 
 ## Usage
@@ -50,131 +56,139 @@ MCP_SERVER_URL=http://localhost:3000
 npm run build
 ```
 
-### Running the MCP Server
-
-```bash
-npm run start
-```
-
-### Development Mode
+### Running the WebSocket Server
 
 ```bash
 npm run dev
+# or
+npm start
 ```
 
-## Available Tools
+The server will start on `ws://localhost:8080`
 
-### 1. Query Social Activity
-Analyze social media activity from various platforms.
+## WebSocket API
 
-**Parameters:**
-- `platform`: Social media platform (twitter, telegram, discord, reddit)
-- `username`: Username or handle to analyze
-- `timeframe`: Time period for analysis (1h, 24h, 7d, 30d)
+### Connection
+Connect to `ws://localhost:8080`
 
-**Example:**
+### Message Types
+
+#### 1. Subscribe to Token Activity
+Subscribe to real-time token activity updates.
+
+**Message:**
 ```json
 {
-  "tool": "query_social_activity",
-  "parameters": {
-    "platform": "twitter",
-    "username": "vitalikbuterin",
-    "timeframe": "24h"
-  }
+  "type": "subscribe_token_activity",
+  "userAddress": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+  "tokenAddress": "0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C",
+  "chain": "ethereum"
 }
 ```
 
-### 2. Query On-Chain Transactions
-Analyze blockchain transactions using The Graph protocol.
-
-**Parameters:**
-- `address`: Wallet address to analyze
-- `chain`: Blockchain network (ethereum, polygon, arbitrum, optimism, base)
-- `timeframe`: Time period for analysis (1h, 24h, 7d, 30d)
-- `transactionType`: Type of transactions (swap, transfer, mint, burn, all)
-
-**Example:**
+**Response:**
 ```json
 {
-  "tool": "query_onchain_transactions",
-  "parameters": {
-    "address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-    "chain": "ethereum",
-    "timeframe": "7d",
-    "transactionType": "swap"
-  }
+  "type": "token_activity_update",
+  "userAddress": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+  "tokenAddress": "0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C",
+  "chain": "ethereum",
+  "data": {
+    "status": "subscribed"
+  },
+  "timestamp": "2024-01-01T00:00:00.000Z"
 }
 ```
 
-### 3. Analyze Token Performance
-Comprehensive token analysis combining social and on-chain data.
+#### 2. Unsubscribe from Token Activity
+Stop receiving updates for a specific token.
 
-**Parameters:**
-- `tokenAddress`: Token contract address
-- `chain`: Blockchain network
-- `includeSocial`: Include social media analysis
-- `includeOnChain`: Include on-chain transaction analysis
-
-**Example:**
+**Message:**
 ```json
 {
-  "tool": "analyze_token_performance",
-  "parameters": {
-    "tokenAddress": "0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C",
-    "chain": "ethereum",
-    "includeSocial": true,
-    "includeOnChain": true
-  }
+  "type": "unsubscribe_token_activity",
+  "userAddress": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+  "tokenAddress": "0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C"
 }
 ```
 
-### 4. Analyze Portfolio
-Analyze portfolio performance across multiple addresses and chains.
+#### 3. Get Token Analysis
+Get comprehensive token analysis with AI insights.
 
-**Parameters:**
-- `addresses`: Array of wallet addresses to analyze
-- `chains`: Blockchain networks to include
-- `timeframe`: Time period for analysis
-
-**Example:**
+**Message:**
 ```json
 {
-  "tool": "analyze_portfolio",
-  "parameters": {
-    "addresses": [
-      "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
-      "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6"
-    ],
-    "chains": ["ethereum", "polygon"],
-    "timeframe": "24h"
-  }
+  "type": "get_token_analysis",
+  "userAddress": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+  "tokenAddress": "0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C",
+  "chain": "ethereum"
 }
 ```
 
-### 5. Generate AI Analysis
-Generate AI-powered analysis using OpenRouter.
-
-**Parameters:**
-- `data`: Data to analyze (social activity, on-chain data, or both)
-- `analysisType`: Type of analysis (social, onchain, comprehensive, trading)
-
-**Example:**
+**Response:**
 ```json
 {
-  "tool": "generate_ai_analysis",
-  "parameters": {
-    "data": {
-      "social": [{"platform": "twitter", "username": "example", "activity": {"posts": 10, "followers": 1000}}],
-      "onChain": [{"hash": "0x123...", "from": "0xabc...", "to": "0xdef...", "value": "1000"}]
+  "type": "token_activity_update",
+  "userAddress": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+  "tokenAddress": "0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C",
+  "chain": "ethereum",
+  "data": {
+    "transferData": {
+      "totalTransfers": 150,
+      "uniqueAddresses": 45,
+      "totalVolume": "1000000",
+      "averageTransferSize": "6666.67",
+      "topSenders": ["0x123...", "0x456..."],
+      "topReceivers": ["0x789...", "0xabc..."],
+      "timestamp": "2024-01-01T00:00:00.000Z"
     },
-    "analysisType": "comprehensive"
-  }
+    "swapData": {
+      "totalSwaps": 75,
+      "averagePrice": "0.05",
+      "priceChange": "+15%",
+      "totalVolume": "500000",
+      "liquidityChanges": "+5%",
+      "timestamp": "2024-01-01T00:00:00.000Z"
+    },
+    "aiAnalysis": "Based on the token activity data, this token shows strong trading volume..."
+  },
+  "timestamp": "2024-01-01T00:00:00.000Z"
 }
 ```
 
 ## MCP Configuration
 
-The `mcpConfig.json` file contains the configuration for MCP clients. You can use this configuration to integrate the IgrisAI MCP client with your preferred MCP client.
+The `mcpConfig.json` file shows how to configure MCP clients to use The Graph MCP server:
+
+```json
+{
+  "mcpServers": {
+    "token-api": {
+      "command": "npx",
+      "args": ["@pinax/mcp", "--sse-url", "https://token-api.mcp.thegraph.com/sse"],
+      "env": {
+        "ACCESS_TOKEN": "<https://thegraph.market JWT Access Token>"
+      }
+    }
+  }
+}
+```
+
+## Client Example
+
+See `src/websocketClientExample.ts` for a complete WebSocket client example:
+
+```typescript
+import { TokenActivityClient } from './websocketClientExample.js';
+
+const client = new TokenActivityClient('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045');
+
+// Subscribe to token activity
+client.subscribeToToken('0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C', 'ethereum');
+
+// Get analysis
+client.getTokenAnalysis('0xA0b86a33E6441b8C4C8C0C4C8C0C4C8C0C4C8C0C', 'ethereum');
+```
 
 ## API Keys
 
@@ -184,10 +198,10 @@ The `mcpConfig.json` file contains the configuration for MCP clients. You can us
 3. Generate an API key
 4. Add it to your `.env` file
 
-### The Graph API Key
-1. Visit [The Graph](https://thegraph.com/)
+### The Graph Market JWT Access Token
+1. Visit [The Graph Market](https://thegraph.market/)
 2. Sign up for an account
-3. Generate an API key
+3. Generate a JWT Access Token
 4. Add it to your `.env` file
 
 ## Supported Networks
@@ -198,38 +212,44 @@ The `mcpConfig.json` file contains the configuration for MCP clients. You can us
 - **Optimism**: Optimistic rollup
 - **Base**: Coinbase's Layer 2 solution
 
-## Supported Social Platforms
-
-- **Twitter**: Social media posts and engagement
-- **Telegram**: Channel activity and messages
-- **Discord**: Server activity and messages
-- **Reddit**: Posts and comments
-
 ## Development
 
 ### Project Structure
 
 ```
 src/
-├── client.ts              # Main MCP client implementation
-├── server.ts              # MCP server implementation
-├── index.ts               # Entry point
+├── index.ts                    # Main WebSocket server entry point
+├── websocketServer.ts          # WebSocket server implementation
+├── client.ts                   # MCP client for Graph integration
+├── websocketClientExample.ts   # Example WebSocket client
+├── test.ts                     # Test script
 ├── config/
-│   └── index.ts           # Configuration and constants
+│   └── index.ts                # Configuration and constants
 ├── types/
-│   ├── index.ts           # Type definitions
-│   └── schemas.ts         # Zod schemas for validation
+│   ├── index.ts                # Type definitions
+│   └── schemas.ts              # Zod schemas for validation
 └── tools/
-    ├── graphMCPTools.ts   # Graph protocol integration
-    └── openRouterClient.ts # OpenRouter API client
+    └── openRouterClient.ts     # OpenRouter API client
 ```
 
-### Adding New Tools
+### Testing
 
-1. Define the tool schema in `src/types/schemas.ts`
-2. Implement the tool handler in `src/tools/`
-3. Register the tool in `src/client.ts`
-4. Update `mcpConfig.json` with the new tool definition
+```bash
+# Test the MCP client
+npm run test
+
+# Run the WebSocket client example
+tsx src/websocketClientExample.ts
+```
+
+## Real-time Monitoring
+
+The server monitors token activity every 30 seconds and sends updates to subscribed clients. It:
+
+1. Connects to The Graph MCP server
+2. Fetches token transfer and swap data
+3. Generates AI analysis using OpenRouter
+4. Broadcasts updates to all subscribed WebSocket clients
 
 ## Contributing
 
