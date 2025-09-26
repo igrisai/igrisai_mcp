@@ -6,11 +6,10 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/index.ts",
+    "dev": "tsx src/deadHandServer.ts",
     "start": "node dist/index.js",
     "test": "tsx src/test.ts",
-    "deadhand": "tsx src/deadHandServer.ts",
-    "test-deadhand": "tsx src/testDeadHand.ts",
+    "old-server": "tsx src/index.ts",
     "clean": "rm -rf dist"
   },
   "keywords": [

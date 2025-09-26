@@ -10,7 +10,7 @@ class TokenActivityTestClient {
   constructor(userAddress: string) {
     this.userAddress = userAddress;
     this.httpBaseUrl = 'http://localhost:3000';
-    this.ws = new WebSocket('ws://localhost:8080');
+    this.ws = new WebSocket('ws://localhost:3000');
     this.setupEventHandlers();
   }
 
@@ -165,7 +165,7 @@ async function runWebSocketTest() {
   const userAddress = '0xb6A9f22642C126D2700CbD17940b334e866234ae'; // STRICT: DONT MODIFY THIS
   
   console.log(`👤 User Address: ${userAddress}`);
-  console.log(`🌐 WebSocket URL: ws://localhost:8080`);
+  console.log(`🌐 WebSocket URL: ws://localhost:3000`);
   console.log(`🌐 HTTP URL: http://localhost:3000\n`);
   
   // Create and start the test client

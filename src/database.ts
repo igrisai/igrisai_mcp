@@ -6,19 +6,28 @@ dotenv.config();
 
 export class DatabaseManager {
   private pool: Pool;
-  private config: DatabaseConfig;
+  private config?: DatabaseConfig;
 
   constructor() {
-    this.config = {
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432'),
-      database: process.env.DB_NAME || 'deadhand_db',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || 'password',
-      ssl: process.env.DB_SSL === 'true'
-    };
+    // Use DATABASE_URL if available, otherwise fall back to individual config
+    if (process.env.DATABASE_URL) {
+      this.pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+      });
+    } else {
+      this.config = {
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || '5432'),
+        database: process.env.DB_NAME || 'deadhand_db',
+        user: process.env.DB_USER || 'postgres',
+        password: process.env.DB_PASSWORD || 'password',
+        ssl: process.env.DB_SSL === 'true'
+      };
 
-    this.pool = new Pool(this.config);
+      this.pool = new Pool(this.config);
+    }
+
     this.setupEventHandlers();
   }
 

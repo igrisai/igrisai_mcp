@@ -25,8 +25,8 @@ CREATE INDEX IF NOT EXISTS idx_dead_hand_configs_created_at ON dead_hand_configs
 -- Insert sample data (optional)
 INSERT INTO dead_hand_configs (user_address, smart_account, timeout_seconds, is_active) 
 VALUES 
-    ('0xb6A9f22642C126D2700CbD17940b334e866234ae', '0x1234567890123456789012345678901234567890', 20, true),
-    ('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', '0x0987654321098765432109876543210987654321', 10, true)
+    ('0xb6a9f22642c126d2700cbd17940b334e866234ae', '0x1234567890123456789012345678901234567890', 20, true),
+    ('0xd8da6bf26964af9d7eed9e03e53415d37aa96045', '0x0987654321098765432109876543210987654321', 10, true)
 ON CONFLICT (user_address) DO NOTHING;
 
 -- Create a function to automatically update the updated_at timestamp
