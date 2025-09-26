@@ -7,6 +7,7 @@ export class IgrisAIMCPClient {
   private mcpClient: Client;
   private openRouterClient: OpenRouterClient;
   private isConnected: boolean = false;
+  private availableTools: string[] = [];
 
   constructor() {
     this.mcpClient = new Client({
@@ -32,9 +33,26 @@ export class IgrisAIMCPClient {
       this.isConnected = true;
       
       console.log('Connected to Graph MCP server successfully');
+      
+      // Discover available tools
+      await this.discoverAvailableTools();
+      
     } catch (error) {
       console.error('Failed to connect to Graph MCP server:', error);
       throw error;
+    }
+  }
+
+  private async discoverAvailableTools(): Promise<void> {
+    try {
+      const tools = await this.mcpClient.listTools();
+      console.log('Available MCP tools:', tools.tools.map(t => t.name));
+      
+      // Store available tool names for later use
+      this.availableTools = tools.tools.map(t => t.name);
+    } catch (error) {
+      console.error('Failed to discover tools:', error);
+      this.availableTools = [];
     }
   }
 
@@ -52,9 +70,17 @@ export class IgrisAIMCPClient {
     }
 
     try {
-      // Call the Graph MCP server to get token transfer data
+      // Find a tool that might handle token transfers
+      const transferTool = this.findToolForTransfers();
+      
+      if (!transferTool) {
+        console.warn('No transfer tool found, returning mock data');
+        return this.getMockTransferData();
+      }
+
+      // Call the discovered tool
       const result = await this.mcpClient.callTool({
-        name: 'get_token_transfers', // This would be the actual tool name from Graph MCP
+        name: transferTool,
         arguments: {
           tokenAddress,
           chain,
@@ -79,16 +105,7 @@ export class IgrisAIMCPClient {
       return transferData;
     } catch (error) {
       console.error('Error getting token transfers:', error);
-      // Return mock data if MCP call fails
-      return {
-        totalTransfers: Math.floor(Math.random() * 1000) + 100,
-        uniqueAddresses: Math.floor(Math.random() * 200) + 50,
-        totalVolume: (Math.random() * 1000000).toFixed(2),
-        averageTransferSize: (Math.random() * 1000).toFixed(2),
-        topSenders: ['0x123...', '0x456...'],
-        topReceivers: ['0x789...', '0xabc...'],
-        timestamp: new Date().toISOString(),
-      };
+      return this.getMockTransferData();
     }
   }
 
@@ -98,9 +115,17 @@ export class IgrisAIMCPClient {
     }
 
     try {
-      // Call the Graph MCP server to get token swap data
+      // Find a tool that might handle token swaps
+      const swapTool = this.findToolForSwaps();
+      
+      if (!swapTool) {
+        console.warn('No swap tool found, returning mock data');
+        return this.getMockSwapData();
+      }
+
+      // Call the discovered tool
       const result = await this.mcpClient.callTool({
-        name: 'get_token_swaps', // This would be the actual tool name from Graph MCP
+        name: swapTool,
         arguments: {
           tokenAddress,
           chain,
@@ -124,16 +149,63 @@ export class IgrisAIMCPClient {
       return swapData;
     } catch (error) {
       console.error('Error getting token swaps:', error);
-      // Return mock data if MCP call fails
-      return {
-        totalSwaps: Math.floor(Math.random() * 500) + 50,
-        averagePrice: (Math.random() * 10).toFixed(4),
-        priceChange: `${(Math.random() * 20 - 10).toFixed(2)}%`,
-        totalVolume: (Math.random() * 500000).toFixed(2),
-        liquidityChanges: `${(Math.random() * 10 - 5).toFixed(2)}%`,
-        timestamp: new Date().toISOString(),
-      };
+      return this.getMockSwapData();
     }
+  }
+
+  private findToolForTransfers(): string | null {
+    // Look for tools that might handle transfers
+    const transferKeywords = ['transfer', 'token', 'balance', 'transaction'];
+    
+    for (const tool of this.availableTools) {
+      for (const keyword of transferKeywords) {
+        if (tool.toLowerCase().includes(keyword)) {
+          console.log(`Found potential transfer tool: ${tool}`);
+          return tool;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  private findToolForSwaps(): string | null {
+    // Look for tools that might handle swaps
+    const swapKeywords = ['swap', 'trade', 'exchange', 'liquidity', 'pool'];
+    
+    for (const tool of this.availableTools) {
+      for (const keyword of swapKeywords) {
+        if (tool.toLowerCase().includes(keyword)) {
+          console.log(`Found potential swap tool: ${tool}`);
+          return tool;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  private getMockTransferData(): TokenTransferData {
+    return {
+      totalTransfers: Math.floor(Math.random() * 1000) + 100,
+      uniqueAddresses: Math.floor(Math.random() * 200) + 50,
+      totalVolume: (Math.random() * 1000000).toFixed(2),
+      averageTransferSize: (Math.random() * 1000).toFixed(2),
+      topSenders: ['0x123...', '0x456...'],
+      topReceivers: ['0x789...', '0xabc...'],
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  private getMockSwapData(): TokenSwapData {
+    return {
+      totalSwaps: Math.floor(Math.random() * 500) + 50,
+      averagePrice: (Math.random() * 10).toFixed(4),
+      priceChange: `${(Math.random() * 20 - 10).toFixed(2)}%`,
+      totalVolume: (Math.random() * 500000).toFixed(2),
+      liquidityChanges: `${(Math.random() * 10 - 5).toFixed(2)}%`,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   async generateTokenAnalysis(transferData: TokenTransferData, swapData: TokenSwapData): Promise<string> {

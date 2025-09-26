@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import { MCPConfig } from '../types/index.js';
 
 export const mcpConfig: MCPConfig = {
