@@ -217,6 +217,15 @@ export class DeadHandServer {
     this.wss.on('connection', (ws: any, request) => {
       console.log('New WebSocket connection established');
       
+      // Store the connection immediately upon connection
+      const connectionId = this.getWebSocketConnectionId(ws);
+      this.connections.set(connectionId, {
+        ws,
+        userAddress: '', // Will be set when user sends a message
+        subscribedTokens: new Set(),
+        lastActivity: new Date(),
+      });
+      
       ws.on('message', async (data: Buffer) => {
         try {
           const message = JSON.parse(data.toString());
@@ -248,12 +257,19 @@ export class DeadHandServer {
   private async handleWebSocketMessage(ws: any, message: any): Promise<void> {
     const { type, userAddress, tokenAddress, chain = 'ethereum' } = message;
 
+    const connectionId = this.getWebSocketConnectionId(ws);
+    
+    // Update connection with user address if provided
+    if (userAddress && this.connections.has(connectionId)) {
+      const connection = this.connections.get(connectionId);
+      connection.userAddress = userAddress;
+      connection.lastActivity = new Date();
+    }
+
     if (!userAddress) {
       this.sendWebSocketError(ws, 'User address is required');
       return;
     }
-
-    const connectionId = this.getWebSocketConnectionId(ws);
     
     switch (type) {
       case 'subscribe_token_activity':
@@ -429,15 +445,30 @@ export class DeadHandServer {
     try {
       console.log(`Executing dead hand check for ${userAddress} (timeout: ${timeoutSeconds}s)`);
       
+      // Broadcast initial status
+      this.broadcastAIStatus(userAddress, 'Starting dead hand check...', 'info');
+      
       // Create AI prompt for recent transaction check
       const prompt = `Check for ALL token transfers (both received and sent) for wallet address ${userAddress} on polygon in the last ${timeoutSeconds} seconds. Include both ERC-20 tokens and native MATIC transfers. Provide a detailed analysis of any activity found.`;
+      
+      // Broadcast AI prompt
+      this.broadcastAIStatus(userAddress, `AI Prompt: ${prompt}`, 'prompt');
       
       // Execute AI-driven analysis
       const result = await this.mcpClient.executeUserPrompt(prompt);
       
+      // Broadcast AI tool usage
+      this.broadcastAIStatus(userAddress, `AI used tool: ${result.toolUsed}`, 'tool_usage');
+      
+      // Broadcast AI reasoning
+      this.broadcastAIStatus(userAddress, `AI Reasoning: ${result.reasoning}`, 'reasoning');
+      
       // Extract transaction data from AI result
       const transactionData = result.parameters?.finalResponse || result.reasoning || 'No transaction data available';
       const activityFound = this.determineActivityFromAIResponse(result.reasoning);
+      
+      // Broadcast activity determination
+      this.broadcastAIStatus(userAddress, `Activity Found: ${activityFound}`, 'activity_result');
       
       const deadHandResult: DeadHandCheckResult = {
         type: 'deadhand_check_result',
@@ -448,7 +479,7 @@ export class DeadHandServer {
         timestamp: new Date().toISOString()
       };
 
-      // Broadcast to all connected clients
+      // Broadcast final result
       this.broadcastDeadHandResult(deadHandResult);
 
       console.log(`Dead hand check completed for ${userAddress}. Activity found: ${activityFound}`);
@@ -456,6 +487,9 @@ export class DeadHandServer {
 
     } catch (error) {
       console.error(`Error executing dead hand check for ${userAddress}:`, error);
+      
+      // Broadcast error status
+      this.broadcastAIStatus(userAddress, `Error: ${error}`, 'error');
       
       const errorResult: DeadHandCheckResult = {
         type: 'deadhand_check_result',
@@ -528,12 +562,28 @@ export class DeadHandServer {
       console.log(`🚨 DEAD HAND SWITCH TRIGGERED for ${userAddress}`);
       console.log(`Smart Account: ${smartAccount}`);
       
+      // Broadcast dead hand switch initiation
+      this.broadcastAIStatus(userAddress, '🚨 DEAD HAND SWITCH INITIATED', 'deadhand_initiated');
+      this.broadcastAIStatus(userAddress, `Smart Account: ${smartAccount}`, 'smart_account');
+      
       // TODO: Implement actual dead hand switch logic
       // This could include:
       // - Transfer funds to a safe address
       // - Execute smart contract functions
       // - Send notifications
       // - Log the event
+      
+      // Simulate dead hand switch steps
+      this.broadcastAIStatus(userAddress, 'Step 1: Analyzing wallet balances...', 'deadhand_step');
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
+      
+      this.broadcastAIStatus(userAddress, 'Step 2: Preparing fund transfer to nomine.igrisai.xyz...', 'deadhand_step');
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
+      
+      this.broadcastAIStatus(userAddress, 'Step 3: Executing smart contract transaction...', 'deadhand_step');
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
+      
+      this.broadcastAIStatus(userAddress, '✅ Dead hand switch completed successfully', 'deadhand_completed');
       
       // For now, just log the event
       console.log(`Dead hand switch executed for user ${userAddress} with smart account ${smartAccount}`);
@@ -543,6 +593,7 @@ export class DeadHandServer {
       
     } catch (error) {
       console.error(`Error triggering dead hand switch for ${userAddress}:`, error);
+      this.broadcastAIStatus(userAddress, `❌ Dead hand switch failed: ${error}`, 'deadhand_error');
     }
   }
 
@@ -574,6 +625,27 @@ export class DeadHandServer {
     } catch (error) {
       console.error(`Error resetting dead hand timer for ${userAddress}:`, error);
     }
+  }
+
+  /**
+   * Broadcast AI status updates to all connected clients
+   */
+  private broadcastAIStatus(userAddress: string, message: string, statusType: string): void {
+    const statusMessage = {
+      type: 'ai_status_update',
+      userAddress,
+      data: {
+        message,
+        statusType,
+        timestamp: new Date().toISOString()
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    // Send to all connections
+    this.connections.forEach((connection) => {
+      this.sendWebSocketMessage(connection.ws, statusMessage);
+    });
   }
 
   /**

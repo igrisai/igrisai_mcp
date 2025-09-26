@@ -93,6 +93,14 @@ class TokenActivityTestClient {
         console.log(`  📝 Message: ${message.data?.message}`);
         break;
       
+      case 'ai_status_update':
+        console.log(`🤖 AI Status Update:`);
+        console.log(`  👤 User: ${message.userAddress}`);
+        console.log(`  📊 Type: ${message.data?.statusType}`);
+        console.log(`  📝 Message: ${message.data?.message}`);
+        console.log(`  ⏰ Time: ${message.data?.timestamp}`);
+        break;
+      
       case 'error':
         console.error('❌ Server error:', message.error);
         break;
