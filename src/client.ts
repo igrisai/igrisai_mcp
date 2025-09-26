@@ -95,37 +95,6 @@ export class IgrisAIMCPClient {
     }
   }
 
-  private findToolForTransfers(): string | null {
-    // Look for tools that might handle transfers
-    const transferKeywords = ['transfer', 'token', 'balance', 'transaction'];
-    
-    for (const tool of this.availableTools) {
-      for (const keyword of transferKeywords) {
-        if (tool.name.toLowerCase().includes(keyword) || tool.description.toLowerCase().includes(keyword)) {
-          console.log(`Found potential transfer tool: ${tool.name}`);
-          return tool.name;
-        }
-      }
-    }
-    
-    return null;
-  }
-
-  private findToolForSwaps(): string | null {
-    // Look for tools that might handle swaps
-    const swapKeywords = ['swap', 'trade', 'exchange', 'liquidity', 'pool'];
-    
-    for (const tool of this.availableTools) {
-      for (const keyword of swapKeywords) {
-        if (tool.name.toLowerCase().includes(keyword) || tool.description.toLowerCase().includes(keyword)) {
-          console.log(`Found potential swap tool: ${tool.name}`);
-          return tool.name;
-        }
-      }
-    }
-    
-    return null;
-  }
 
 
   /**
@@ -151,11 +120,8 @@ export class IgrisAIMCPClient {
       console.log(`AI reasoning: ${toolSelection.reasoning}`);
       console.log(`AI parameters:`, toolSelection.parameters);
 
-      // Execute the AI-selected tool
-      const result = await this.mcpClient.callTool({
-        name: toolSelection.selectedTool,
-        arguments: toolSelection.parameters,
-      });
+      // Execute the AI-selected tool using generic method
+      const result = await this.executeTool(toolSelection.selectedTool, toolSelection.parameters);
 
       return {
         toolUsed: toolSelection.selectedTool,
@@ -166,15 +132,6 @@ export class IgrisAIMCPClient {
     } catch (error) {
       console.error('Error executing user prompt:', error);
       throw new Error(`Failed to execute user prompt: ${error}`);
-    }
-  }
-
-  async generateTokenAnalysis(transferData: TokenTransferData, swapData: TokenSwapData): Promise<string> {
-    try {
-      return await this.openRouterClient.generateTokenInsights(transferData, swapData, 'comprehensive');
-    } catch (error) {
-      console.error('Error generating AI analysis:', error);
-      return 'Unable to generate AI analysis at this time.';
     }
   }
 

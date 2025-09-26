@@ -35,7 +35,7 @@ export class OpenRouterClient {
   constructor() {
     this.apiKey = mcpConfig.openrouter.apiKey;
     this.baseUrl = mcpConfig.openrouter.baseUrl || 'https://openrouter.ai/api/v1';
-    this.model = mcpConfig.openrouter.model || 'anthropic/claude-3.5-sonnet';
+    this.model = mcpConfig.openrouter.model!;
   }
 
   /**
@@ -168,26 +168,11 @@ export class OpenRouterClient {
     const messages: OpenRouterMessage[] = [
       {
         role: 'system',
-        content: `You are an expert blockchain data analyst. You have access to MCP tools for fetching blockchain data. Analyze the user's request and select the most appropriate tool to fulfill their needs. 
+        content: `You are an expert blockchain data analyst. You have access to MCP tools for fetching blockchain data. 
 
-Available tools:
-${availableTools.map(tool => `- ${tool.name}: ${tool.description}`).join('\n')}
+When a user asks for blockchain data, analyze their request and call the most appropriate tool. The tools are available as function calls.
 
-Respond with a JSON object containing:
-- selectedTool: the name of the tool to use
-- parameters: the parameters to pass to the tool
-- reasoning: brief explanation of why this tool was selected
-
-Example response:
-{
-  "selectedTool": "get_token_transfers",
-  "parameters": {
-    "tokenAddress": "0xA0b86a33E6441b8C4C8C0C4C0C4C0C4C0C4C0C4C",
-    "chain": "ethereum",
-    "timeframe": "24h"
-  },
-  "reasoning": "User wants transfer data for a specific token"
-}`,
+After calling a tool, provide a brief explanation of why you selected that tool and what data you're retrieving.`,
       },
       {
         role: 'user',
@@ -201,20 +186,35 @@ Example response:
         max_tokens: 500,
       });
 
-      // Parse the AI response
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error('No response from AI');
+      // Check if AI made a tool call
+      const message = response.choices[0]?.message;
+      if (message?.tool_calls && message.tool_calls.length > 0) {
+        const toolCall = message.tool_calls[0];
+        const functionCall = toolCall.function;
+        
+        return {
+          selectedTool: functionCall.name,
+          parameters: JSON.parse(functionCall.arguments),
+          reasoning: message.content || `Selected ${functionCall.name} based on user request`
+        };
       }
 
-      // Try to parse JSON response
-      const parsedResponse = JSON.parse(content);
-      
-      return {
-        selectedTool: parsedResponse.selectedTool,
-        parameters: parsedResponse.parameters || {},
-        reasoning: parsedResponse.reasoning || 'No reasoning provided'
-      };
+      // Fallback: try to parse content as JSON (for backward compatibility)
+      const content = message?.content;
+      if (content) {
+        try {
+          const parsedResponse = JSON.parse(content);
+          return {
+            selectedTool: parsedResponse.selectedTool,
+            parameters: parsedResponse.parameters || {},
+            reasoning: parsedResponse.reasoning || 'No reasoning provided'
+          };
+        } catch {
+          throw new Error('AI did not make a tool call and response is not valid JSON');
+        }
+      }
+
+      throw new Error('No tool call or content in AI response');
     } catch (error) {
       console.error('Error in AI tool selection:', error);
       throw new Error(`Failed to select tool: ${error}`);

@@ -200,14 +200,9 @@ export class TokenActivityWebSocketServer {
         await this.mcpClient.connect();
       }
 
-      // Get token data from MCP server
-      const [transferData, swapData] = await Promise.all([
-        this.mcpClient.getTokenTransfers(tokenAddress, chain, '24h'),
-        this.mcpClient.getTokenSwaps(tokenAddress, chain, '24h'),
-      ]);
-
-      // Generate AI analysis
-      const aiAnalysis = await this.mcpClient.generateTokenAnalysis(transferData, swapData);
+      // Use AI-driven approach to get token analysis
+      const prompt = `Analyze token ${tokenAddress} on ${chain} network. Get comprehensive data including transfers and swaps.`;
+      const result = await this.mcpClient.executeUserPrompt(prompt);
 
       this.sendMessage(ws, {
         type: 'token_activity_update',
@@ -215,9 +210,10 @@ export class TokenActivityWebSocketServer {
         tokenAddress,
         chain,
         data: {
-          transferData,
-          swapData,
-          aiAnalysis,
+          toolUsed: result.toolUsed,
+          reasoning: result.reasoning,
+          parameters: result.parameters,
+          result: result.result,
         },
         timestamp: new Date().toISOString(),
       });
@@ -238,14 +234,12 @@ export class TokenActivityWebSocketServer {
           await this.mcpClient.connect();
         }
 
-        // Get latest token data
-        const [transferData, swapData] = await Promise.all([
-          this.mcpClient.getTokenTransfers(tokenAddress, chain, '1h'),
-          this.mcpClient.getTokenSwaps(tokenAddress, chain, '1h'),
-        ]);
-
+        // Get latest token data using AI-driven approach
+        const prompt = `Get latest activity data for token ${tokenAddress} on ${chain} network.`;
+        const result = await this.mcpClient.executeUserPrompt(prompt);
+        
         // Send updates to all subscribed connections
-        this.broadcastTokenUpdate(tokenAddress, transferData, swapData);
+        this.broadcastTokenUpdate(tokenAddress, result);
       } catch (error) {
         console.error(`Error monitoring token ${tokenAddress}:`, error);
         // Broadcast error to subscribers
@@ -265,14 +259,16 @@ export class TokenActivityWebSocketServer {
     }
   }
 
-  private broadcastTokenUpdate(tokenAddress: string, transferData: any, swapData: any): void {
+  private broadcastTokenUpdate(tokenAddress: string, result: any): void {
     const message: TokenActivityMessage = {
       type: 'token_activity_update',
       userAddress: '',
       tokenAddress,
       data: {
-        transferData,
-        swapData,
+        toolUsed: result.toolUsed,
+        reasoning: result.reasoning,
+        parameters: result.parameters,
+        result: result.result,
         timestamp: new Date().toISOString(),
       },
       timestamp: new Date().toISOString(),

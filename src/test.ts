@@ -47,14 +47,17 @@ class TokenActivityTestClient {
       
       case 'token_activity_update':
         console.log(`📊 Token activity update for ${message.tokenAddress}:`);
-        if (message.data?.transferData) {
-          console.log('  💸 Transfer Data:', JSON.stringify(message.data.transferData, null, 2));
+        if (message.data?.toolUsed) {
+          console.log(`  🛠️  Tool Used: ${message.data.toolUsed}`);
         }
-        if (message.data?.swapData) {
-          console.log('  🔄 Swap Data:', JSON.stringify(message.data.swapData, null, 2));
+        if (message.data?.reasoning) {
+          console.log(`  💭 Reasoning: ${message.data.reasoning}`);
         }
-        if (message.data?.aiAnalysis) {
-          console.log('  🤖 AI Analysis:', message.data.aiAnalysis);
+        if (message.data?.parameters) {
+          console.log(`  ⚙️  Parameters:`, JSON.stringify(message.data.parameters, null, 2));
+        }
+        if (message.data?.result) {
+          console.log(`  📊 Result:`, JSON.stringify(message.data.result, null, 2));
         }
         break;
       

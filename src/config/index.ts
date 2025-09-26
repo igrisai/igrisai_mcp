@@ -9,31 +9,3 @@ export const mcpConfig: MCPConfig = {
     model: 'qwen/qwen3-14b',
   },
 };
-
-export const supportedChains = {
-  ethereum: {
-    name: 'Ethereum',
-    chainId: 1,
-    rpcUrl: 'https://mainnet.infura.io/v3/',
-  },
-  polygon: {
-    name: 'Polygon',
-    chainId: 137,
-    rpcUrl: 'https://polygon-rpc.com/',
-  },
-  arbitrum: {
-    name: 'Arbitrum',
-    chainId: 42161,
-    rpcUrl: 'https://arb1.arbitrum.io/rpc',
-  },
-  optimism: {
-    name: 'Optimism',
-    chainId: 10,
-    rpcUrl: 'https://mainnet.optimism.io',
-  },
-  base: {
-    name: 'Base',
-    chainId: 8453,
-    rpcUrl: 'https://mainnet.base.org',
-  },
-};
