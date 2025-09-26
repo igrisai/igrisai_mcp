@@ -4,11 +4,9 @@ import WebSocket from 'ws';
 class TokenActivityTestClient {
   private ws: WebSocket;
   private userAddress: string;
-  private tokenAddress: string;
 
-  constructor(userAddress: string, tokenAddress: string) {
+  constructor(userAddress: string) {
     this.userAddress = userAddress;
-    this.tokenAddress = tokenAddress;
     this.ws = new WebSocket('ws://localhost:8080');
     this.setupEventHandlers();
   }
@@ -79,74 +77,26 @@ class TokenActivityTestClient {
   }
 
   private startTests(): void {
-    console.log('\n🧪 Starting WebSocket Tests...\n');
+    console.log('\n🧪 Starting WebSocket Test...\n');
 
-    // Test 1: Get immediate token analysis
+    // Test: AI-driven prompt execution
     setTimeout(() => {
-      console.log('🔍 Test 1: Requesting immediate token analysis...');
-      this.getTokenAnalysis();
+      console.log('🤖 Testing AI-driven prompt execution...');
+      this.testAIPrompt();
     }, 1000);
 
-    // Test 2: Subscribe to real-time updates
+    // Close connection after test
     setTimeout(() => {
-      console.log('📡 Test 2: Subscribing to real-time token activity...');
-      this.subscribeToToken();
-    }, 3000);
-
-    // Test 3: Wait for real-time updates (30 seconds)
-    setTimeout(() => {
-      console.log('⏰ Test 3: Waiting for real-time updates (30 seconds)...');
-    }, 5000);
-
-    // Test 4: AI-driven prompt execution
-    setTimeout(() => {
-      console.log('🤖 Test 4: Testing AI-driven prompt execution...');
-      this.testAIPrompt();
-    }, 35000);
-
-    // Test 5: Unsubscribe
-    setTimeout(() => {
-      console.log('📡 Test 5: Unsubscribing from token activity...');
-      this.unsubscribeFromToken();
-    }, 40000);
-
-    // Test 6: Close connection
-    setTimeout(() => {
-      console.log('🔌 Test 6: Closing connection...');
+      console.log('🔌 Closing connection...');
       this.close();
-    }, 45000);
+    }, 10000);
   }
 
-  // Get comprehensive token analysis
-  private getTokenAnalysis(): void {
-    const message = {
-      type: 'get_token_analysis',
-      userAddress: this.userAddress,
-      tokenAddress: this.tokenAddress,
-      chain: 'ethereum',
-    };
-    
-    this.ws.send(JSON.stringify(message));
-    console.log(`🔍 Requesting analysis for ${this.tokenAddress}`);
-  }
-
-  // Subscribe to token activity updates
-  private subscribeToToken(): void {
-    const message = {
-      type: 'subscribe_token_activity',
-      userAddress: this.userAddress,
-      tokenAddress: this.tokenAddress,
-      chain: 'ethereum',
-    };
-    
-    this.ws.send(JSON.stringify(message));
-    console.log(`📡 Subscribing to ${this.tokenAddress} activity on ethereum`);
-  }
 
   // Test AI-driven prompt execution
   private testAIPrompt(): void {
     const prompts = [
-      `Check if any tokens have been transferred to wallet address ${this.userAddress} today. Also check for any transfers sent from this wallet address.`
+      `Check if any tokens have been transferred recieved to wallet address ${this.userAddress} on polygon in a week?`
     ];
 
     const randomPrompt = prompts[0];
@@ -161,17 +111,6 @@ class TokenActivityTestClient {
     console.log(`🤖 Testing AI prompt: "${randomPrompt}"`);
   }
 
-  // Unsubscribe from token activity updates
-  private unsubscribeFromToken(): void {
-    const message = {
-      type: 'unsubscribe_token_activity',
-      userAddress: this.userAddress,
-      tokenAddress: this.tokenAddress,
-    };
-    
-    this.ws.send(JSON.stringify(message));
-    console.log(`📡 Unsubscribing from ${this.tokenAddress} activity`);
-  }
 
   // Close the connection
   public close(): void {
@@ -184,15 +123,13 @@ class TokenActivityTestClient {
 async function runWebSocketTest() {
   console.log('🚀 Starting IgrisAI WebSocket Test Client\n');
   
-  const userAddress = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
-  const tokenAddress = '0xb6A9f22642C126D2700CbD17940b334e866234ae';
+  const userAddress = '0xb6A9f22642C126D2700CbD17940b334e866234ae'; // STRICT: DONT MODIFY THIS
   
   console.log(`👤 User Address: ${userAddress}`);
-  console.log(`🪙 Token Address: ${tokenAddress}`);
   console.log(`🌐 WebSocket URL: ws://localhost:8080\n`);
   
   // Create and start the test client
-  const testClient = new TokenActivityTestClient(userAddress, tokenAddress);
+  const testClient = new TokenActivityTestClient(userAddress);
   
   // Handle process termination
   process.on('SIGINT', () => {

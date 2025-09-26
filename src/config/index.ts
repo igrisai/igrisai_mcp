@@ -6,6 +6,6 @@ export const mcpConfig: MCPConfig = {
   openrouter: {
     apiKey: process.env.OPENROUTER_API_KEY || '',
     baseUrl: 'https://openrouter.ai/api/v1',
-    model: 'qwen/qwen3-14b',
+    model: 'x-ai/grok-4-fast',
   },
 };

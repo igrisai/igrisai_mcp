@@ -168,12 +168,36 @@ export class OpenRouterClient {
       }
     }));
 
+    // Get current date and time for context (UTC)
+    const now = new Date();
+    const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD (UTC)
+    const currentTime = now.toISOString(); // Full ISO string (UTC)
+    const currentDateFormatted = now.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      timeZone: 'UTC'
+    });
+
     // Build comprehensive system prompt with resources and prompts
     let systemPrompt = `You are an expert blockchain data analyst. You have access to MCP tools for fetching blockchain data.
 
-When a user asks for blockchain data, immediately call the most appropriate tool. Do not explain your reasoning - just make the tool call.
+CURRENT DATE AND TIME CONTEXT (UTC):
+- Current Date: ${currentDateFormatted} (${currentDate})
+- Current Time: ${currentTime} (UTC)
+- When users ask for "today", use: ${currentDate}
+- When users ask for "yesterday", use: ${new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
 
-IMPORTANT: For transfer queries, use the run_query tool to search for transfers involving the specified wallet address.`;
+CRITICAL INSTRUCTIONS:
+1. When a user asks for blockchain data, immediately call the most appropriate tool
+2. After gathering data with tools, provide a FINAL SUMMARY in your response
+3. Do NOT keep making tool calls indefinitely - when you have enough information, provide a clear final answer
+4. If you have no more tools to call, provide your final analysis and conclusion
+5. For transfer queries, use the run_query tool to search for transfers involving the specified wallet address
+6. Use the current date context above when interpreting time-based queries like "today", "yesterday", etc.
+
+COMPLETION RULE: When you have gathered sufficient data and have no more tools to call, provide a comprehensive final response about the token transfers, balances, or requested blockchain data.`;
 
     // Add resources information if available
     if (availableResources.length > 0) {
@@ -205,14 +229,14 @@ IMPORTANT: For transfer queries, use the run_query tool to search for transfers 
       },
     ];
 
-    // Conversation loop - up to 5 iterations with circuit breaker
+    // Conversation loop - up to 10 iterations with circuit breaker
     let conversationMessages = [...messages];
     let consecutiveFailures = 0;
     const maxConsecutiveFailures = 3;
     
-    for (let iteration = 1; iteration <= 5; iteration++) {
+    for (let iteration = 1; iteration <= 10; iteration++) {
       try {
-        console.log(`AI conversation iteration ${iteration}/5`);
+        console.log(`AI conversation iteration ${iteration}/10`);
         
         const response = await this.chatCompletionWithTools(conversationMessages, tools, {
           temperature: 0.3,
@@ -247,11 +271,13 @@ IMPORTANT: For transfer queries, use the run_query tool to search for transfers 
                 arguments: JSON.parse(toolCall.function.arguments),
               });
               
+              // Debug: Log the tool response
+              console.log(`🔍 Tool ${toolCall.function.name} response:`, JSON.stringify(result, null, 2));
+              
               // Format tool result properly for OpenRouter
               const toolResult = {
-                tool_call_id: toolCall.id,
                 role: 'tool' as const,
-                name: toolCall.function.name,
+                tool_call_id: toolCall.id,
                 content: typeof result === 'string' ? result : JSON.stringify(result)
               };
               
@@ -261,9 +287,8 @@ IMPORTANT: For transfer queries, use the run_query tool to search for transfers 
             } catch (error) {
               console.error(`❌ Tool ${toolCall.function.name} failed:`, error);
               toolResults.push({
-                tool_call_id: toolCall.id,
                 role: 'tool' as const,
-                name: toolCall.function.name,
+                tool_call_id: toolCall.id,
                 content: `Tool execution failed: ${error}`
               });
             }
@@ -276,14 +301,26 @@ IMPORTANT: For transfer queries, use the run_query tool to search for transfers 
           continue;
         }
         
-        // No more tool calls - AI is done
-        console.log(`✅ AI completed conversation in ${iteration} iterations`);
+        // No tool calls - check if AI provided final response
+        if (message?.content && message.content.trim() !== '') {
+          console.log(`✅ AI provided final response in iteration ${iteration}: ${message.content.substring(0, 100)}...`);
+          
+          // Return the final result
+          return {
+            selectedTool: 'conversation_complete',
+            parameters: { iterations: iteration, finalResponse: message.content },
+            reasoning: message.content
+          };
+        }
+        
+        // No tool calls and no content - AI is done but didn't provide response
+        console.log(`⚠️ AI completed conversation in ${iteration} iterations but provided no final response`);
         
         // Return the final result
         return {
           selectedTool: 'conversation_complete',
-          parameters: { iterations: iteration, finalResponse: message?.content },
-          reasoning: message?.content || 'Conversation completed successfully'
+          parameters: { iterations: iteration, finalResponse: 'No final response provided' },
+          reasoning: 'Conversation completed but AI did not provide a final response'
         };
         
       } catch (error) {
@@ -301,8 +338,13 @@ IMPORTANT: For transfer queries, use the run_query tool to search for transfers 
       }
     }
     
-    // This should never be reached, but TypeScript requires it
-    throw new Error('Unexpected error: conversation loop completed without success');
+    // Completion timeout: reached maximum iterations (10)
+    console.log(`⏰ Reached maximum iterations (10), stopping conversation`);
+    return {
+      selectedTool: 'conversation_complete',
+      parameters: { iterations: 10, finalResponse: 'Maximum iterations reached' },
+      reasoning: 'Conversation completed after maximum iterations (10)'
+    };
   }
 
   /**
@@ -315,10 +357,24 @@ IMPORTANT: For transfer queries, use the run_query tool to search for transfers 
   ): Promise<any> {
     const payload = {
       model: this.model,
-      messages: messages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      })),
+      messages: messages.map(msg => {
+        const baseMessage: any = {
+          role: msg.role,
+          content: msg.content
+        };
+        
+        // Add tool_calls for assistant messages
+        if (msg.role === 'assistant' && msg.tool_calls) {
+          baseMessage.tool_calls = msg.tool_calls;
+        }
+        
+        // Add tool_call_id for tool messages
+        if (msg.role === 'tool') {
+          baseMessage.tool_call_id = msg.tool_call_id;
+        }
+        
+        return baseMessage;
+      }),
       tools: tools,
       temperature: options.temperature || 0.7,
       max_tokens: options.max_tokens || 1000,
