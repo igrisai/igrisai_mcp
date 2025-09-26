@@ -74,8 +74,7 @@ export class IgrisAIMCPClient {
       const transferTool = this.findToolForTransfers();
       
       if (!transferTool) {
-        console.warn('No transfer tool found, returning mock data');
-        return this.getMockTransferData();
+        throw new Error('No transfer tool found in available MCP tools');
       }
 
       // Call the discovered tool
@@ -105,7 +104,7 @@ export class IgrisAIMCPClient {
       return transferData;
     } catch (error) {
       console.error('Error getting token transfers:', error);
-      return this.getMockTransferData();
+      throw new Error(`Failed to get token transfers: ${error}`);
     }
   }
 
@@ -119,8 +118,7 @@ export class IgrisAIMCPClient {
       const swapTool = this.findToolForSwaps();
       
       if (!swapTool) {
-        console.warn('No swap tool found, returning mock data');
-        return this.getMockSwapData();
+        throw new Error('No swap tool found in available MCP tools');
       }
 
       // Call the discovered tool
@@ -149,7 +147,7 @@ export class IgrisAIMCPClient {
       return swapData;
     } catch (error) {
       console.error('Error getting token swaps:', error);
-      return this.getMockSwapData();
+      throw new Error(`Failed to get token swaps: ${error}`);
     }
   }
 
@@ -185,28 +183,6 @@ export class IgrisAIMCPClient {
     return null;
   }
 
-  private getMockTransferData(): TokenTransferData {
-    return {
-      totalTransfers: Math.floor(Math.random() * 1000) + 100,
-      uniqueAddresses: Math.floor(Math.random() * 200) + 50,
-      totalVolume: (Math.random() * 1000000).toFixed(2),
-      averageTransferSize: (Math.random() * 1000).toFixed(2),
-      topSenders: ['0x123...', '0x456...'],
-      topReceivers: ['0x789...', '0xabc...'],
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  private getMockSwapData(): TokenSwapData {
-    return {
-      totalSwaps: Math.floor(Math.random() * 500) + 50,
-      averagePrice: (Math.random() * 10).toFixed(4),
-      priceChange: `${(Math.random() * 20 - 10).toFixed(2)}%`,
-      totalVolume: (Math.random() * 500000).toFixed(2),
-      liquidityChanges: `${(Math.random() * 10 - 5).toFixed(2)}%`,
-      timestamp: new Date().toISOString(),
-    };
-  }
 
   async generateTokenAnalysis(transferData: TokenTransferData, swapData: TokenSwapData): Promise<string> {
     try {

@@ -6,7 +6,7 @@ export const mcpConfig: MCPConfig = {
   openrouter: {
     apiKey: process.env.OPENROUTER_API_KEY || '',
     baseUrl: 'https://openrouter.ai/api/v1',
-    model: 'anthropic/claude-3.5-sonnet',
+    model: 'qwen/qwen3-14b',
   },
 };
 

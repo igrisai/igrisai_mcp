@@ -212,6 +212,8 @@ export class TokenActivityWebSocketServer {
         this.broadcastTokenUpdate(tokenAddress, transferData, swapData);
       } catch (error) {
         console.error(`Error monitoring token ${tokenAddress}:`, error);
+        // Broadcast error to subscribers
+        this.broadcastError(tokenAddress, `Failed to get live data for token ${tokenAddress}: ${error}`);
       }
     }, 30000); // 30 seconds
 
@@ -277,6 +279,22 @@ export class TokenActivityWebSocketServer {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
     }
+  }
+
+  private broadcastError(tokenAddress: string, errorMessage: string): void {
+    // Send error to all connections subscribed to this token
+    this.connections.forEach((connection) => {
+      if (connection.subscribedTokens.has(tokenAddress)) {
+        const errorMessage_obj = {
+          type: 'error' as const,
+          userAddress: connection.userAddress,
+          tokenAddress,
+          error: errorMessage,
+          timestamp: new Date().toISOString(),
+        };
+        this.sendMessage(connection.ws, errorMessage_obj);
+      }
+    });
   }
 
   private sendError(ws: WebSocket, error: string): void {
