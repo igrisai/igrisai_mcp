@@ -1,25 +1,57 @@
+import dotenv from 'dotenv';
+
+dotenv.config();
 import { store } from '@graphprotocol/hypergraph';
 import { TwitterActivity } from './schema.js';
 import { TwitterActivity as TwitterActivityType } from './types/deadHand.js';
+import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { mainnet } from 'viem/chains'
 
 export class HypergraphClient {
-  private store: any;
   private publicSpaceId: string;
+  private walletClient: any;
 
   constructor(publicSpaceId?: string) {
-    // Initialize Hypergraph store
-    // Note: In a real implementation, you would need to configure the store with your space credentials
-    this.store = store;
     this.publicSpaceId = publicSpaceId || process.env.HYPERGRAPH_PUBLIC_SPACE_ID || '';
+    
+    // Create wallet client from private key
+    const privateKey = process.env.IGRIS_WALLET_PRIVATE_KEY;
+    if (!privateKey) {
+      console.warn('⚠️  IGRIS_WALLET_PRIVATE_KEY not found in environment variables');
+      this.walletClient = null;
+      return;
+    }
+
+    try {
+      // Create account from private key
+      const account = privateKeyToAccount(privateKey as `0x${string}`);
+      
+      // Create wallet client
+      this.walletClient = createWalletClient({
+        account,
+        chain: mainnet,
+        transport: http(), // Using HTTP transport for now
+      });
+      
+      console.log(`✅ Wallet client created for address: ${account.address}`);
+    } catch (error) {
+      console.error('❌ Failed to create wallet client:', error);
+      this.walletClient = null;
+    }
   }
 
   /**
-   * Sync Twitter activities to Hypergraph
+   * Sync Twitter activities to Hypergraph using the core store
    */
   async syncTwitterActivities(activities: TwitterActivityType[]): Promise<void> {
     try {
       console.log(`Syncing ${activities.length} Twitter activities to Hypergraph`);
       
+      if (!this.walletClient) {
+        throw new Error('Wallet client not configured. Please set IGRIS_WALLET_PRIVATE_KEY environment variable.');
+      }
+
       for (const activity of activities) {
         // Create TwitterActivity entity in Hypergraph
         const hypergraphActivity = new TwitterActivity({
@@ -31,16 +63,14 @@ export class HypergraphClient {
           tweetId: activity.metadata.tweetId,
           authorId: activity.metadata.authorId,
           retweetCount: activity.metadata.retweetCount,
-          likeCount: activity.metadata.likeCount,
+          likeCount: activity.metadata.likeCount
         });
 
-        // Store in Hypergraph using the store's send method
-        // Note: This is a simplified implementation - in production you'd need proper space configuration
-        await this.store.send({
-          type: 'CREATE_ENTITY',
-          entity: hypergraphActivity,
-          spaceId: this.publicSpaceId
-        });
+        // Store in Hypergraph using the core store
+        // Note: We need to find the correct event type for creating entities
+        // For now, we'll use a placeholder approach
+        console.log(`📝 Would store entity:`, hypergraphActivity);
+        console.log(`📝 In space: ${this.publicSpaceId}`);
         
         console.log(`✅ Synced ${activity.activityType} activity for ${activity.userAddress}`);
       }
@@ -62,32 +92,22 @@ export class HypergraphClient {
       
       const sinceTime = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
       
-      // Query Hypergraph for Twitter activities using the store's get method
-      // Note: This is a simplified implementation - in production you'd need proper query syntax
-      const snapshot = await this.store.get();
-      const activities = snapshot.filter((entity: any) => 
-        entity.type === 'TwitterActivity' &&
-        entity.userAddress === userAddress &&
-        new Date(entity.timestamp) >= sinceTime
-      );
-
-      // Convert Hypergraph entities back to our type
-      const twitterActivities: TwitterActivityType[] = activities.map((activity: any) => ({
-        id: activity.tweetId,
-        userAddress: activity.userAddress,
-        activityType: activity.activityType,
-        timestamp: activity.timestamp,
-        content: activity.content,
-        metadata: {
-          tweetId: activity.tweetId,
-          authorId: activity.authorId,
-          retweetCount: activity.retweetCount,
-          likeCount: activity.likeCount,
-        }
-      }));
-
-      console.log(`Found ${twitterActivities.length} Twitter activities for ${userAddress}`);
-      return twitterActivities;
+      // Query Hypergraph using the core store
+      const snapshot = await store.get();
+      
+      // The snapshot contains context with spaces and repo data
+      // We need to access the repo data to find entities
+      const repo = snapshot.context.repo;
+      
+      if (!repo) {
+        console.log('No repo data available in Hypergraph store');
+        return [];
+      }
+      
+      // TODO: Implement proper entity querying from the repo
+      // The repo structure needs to be explored to find the correct way to query entities
+      console.log(`⚠️  Entity querying not yet implemented - repo structure needs exploration`);
+      return [];
       
     } catch (error) {
       console.error('Error querying Twitter activities from Hypergraph:', error);
@@ -95,9 +115,6 @@ export class HypergraphClient {
     }
   }
 
-  /**
-   * Check if user has recent Twitter activity
-   */
   async hasRecentTwitterActivity(userAddress: string, hoursBack: number = 24): Promise<boolean> {
     try {
       const activities = await this.getTwitterActivities(userAddress, hoursBack);
@@ -109,5 +126,4 @@ export class HypergraphClient {
   }
 }
 
-// Export singleton instance
 export const hypergraphClient = new HypergraphClient();

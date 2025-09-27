@@ -1,7 +1,7 @@
 import express from 'express';
 import { DatabaseManager } from './database.js';
 import { CronScheduler } from './cronScheduler.js';
-import { TokenActivityWebSocketServer } from './websocketServer.js';
+import { TokenActivityWebSocketServer } from '../websocketServer.js';
 import { InitiateDeadHandRequest, InitiateDeadHandResponse } from './types/deadHand.js';
 import dotenv from 'dotenv';
 

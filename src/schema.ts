@@ -11,12 +11,3 @@ export class TwitterActivity extends Entity.Class<TwitterActivity>('TwitterActiv
   retweetCount: Type.Number,
   likeCount: Type.Number
 }) {}
-
-export class DeadHandConfig extends Entity.Class<DeadHandConfig>('DeadHandConfig')({
-  userAddress: Type.String,
-  smartAccount: Type.String,
-  timeoutSeconds: Type.Number,
-  isActive: Type.Boolean,
-  createdAt: Type.Date,
-  updatedAt: Type.Date
-}) {}
