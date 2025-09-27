@@ -5,6 +5,7 @@ import { DatabaseManager } from './database.js';
 import { CronScheduler } from './cronScheduler.js';
 import { IgrisAIMCPClient } from './client.js';
 import { twitterSyncService } from './twitterSyncService.js';
+import { hypergraphClient } from './hypergraphClient.js';
 import { InitiateDeadHandRequest, InitiateDeadHandResponse, DeadHandCheckResult } from './types/deadHand.js';
 import dotenv from 'dotenv';
 
@@ -459,10 +460,10 @@ export class DeadHandServer {
         return;
       }
       
-      // Fetch and sync Twitter activities
-      const activities = await twitterSyncService.syncTwitterActivities(userAddress, 24); // Last 24 hours
+      // Perform complete Twitter sync (fetch from API + sync to Hypergraph)
+      const activities = await twitterSyncService.performCompleteSync(twitterAuth, 24); // Last 24 hours
       
-      console.log(`Twitter sync completed for ${userAddress}: ${activities.length} activities`);
+      console.log(`Twitter sync completed for ${userAddress}: ${activities.length} activities synced to Hypergraph`);
       
     } catch (error) {
       console.error(`Twitter sync failed for ${userAddress}:`, error);
@@ -549,19 +550,16 @@ export class DeadHandServer {
    */
   private async checkTwitterActivityFromHypergraph(userAddress: string, timeoutSeconds: number): Promise<boolean> {
     try {
-      // TODO: Implement Hypergraph query when we add Hypergraph integration
-      // For now, return false as placeholder
       console.log(`Checking Twitter activity from Hypergraph for ${userAddress} (last ${timeoutSeconds}s)`);
       
-      // Placeholder: In real implementation, this would query Hypergraph
-      // const activities = await hypergraph.query(TwitterActivity, {
-      //   filter: {
-      //     userAddress,
-      //     timestamp: { $gte: new Date(Date.now() - timeoutSeconds * 1000) }
-      //   }
-      // });
+      // Convert timeout seconds to hours for the query
+      const hoursBack = Math.ceil(timeoutSeconds / 3600); // Round up to nearest hour
       
-      return false; // Placeholder
+      // Query Hypergraph for recent Twitter activities
+      const hasActivity = await hypergraphClient.hasRecentTwitterActivity(userAddress, hoursBack);
+      
+      console.log(`Twitter activity check result for ${userAddress}: ${hasActivity ? 'ACTIVE' : 'NO ACTIVITY'}`);
+      return hasActivity;
       
     } catch (error) {
       console.error(`Error checking Twitter activity for ${userAddress}:`, error);

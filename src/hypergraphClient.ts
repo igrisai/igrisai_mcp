@@ -1,13 +1,16 @@
-import { store, TwitterActivity, DeadHandConfig } from '@graphprotocol/hypergraph';
+import { store } from '@graphprotocol/hypergraph';
+import { TwitterActivity } from './schema.js';
 import { TwitterActivity as TwitterActivityType } from './types/deadHand.js';
 
 export class HypergraphClient {
   private store: any;
+  private publicSpaceId: string;
 
-  constructor() {
+  constructor(publicSpaceId?: string) {
     // Initialize Hypergraph store
     // Note: In a real implementation, you would need to configure the store with your space credentials
     this.store = store;
+    this.publicSpaceId = publicSpaceId || process.env.HYPERGRAPH_PUBLIC_SPACE_ID || '';
   }
 
   /**
@@ -30,8 +33,14 @@ export class HypergraphClient {
           likeCount: activity.metadata.likeCount,
         });
 
-        // Store in Hypergraph
-        await this.store.create(hypergraphActivity);
+        // Store in Hypergraph using the store's send method
+        // Note: This is a simplified implementation - in production you'd need proper space configuration
+        await this.store.send({
+          type: 'CREATE_ENTITY',
+          entity: hypergraphActivity,
+          spaceId: this.publicSpaceId
+        });
+        
         console.log(`✅ Synced ${activity.activityType} activity for ${activity.userAddress}`);
       }
       
@@ -52,14 +61,14 @@ export class HypergraphClient {
       
       const sinceTime = new Date(Date.now() - hoursBack * 60 * 60 * 1000);
       
-      // Query Hypergraph for Twitter activities
-      const activities = await this.store.query({
-        entity: TwitterActivity,
-        filter: {
-          userAddress: userAddress,
-          timestamp: { $gte: sinceTime }
-        }
-      });
+      // Query Hypergraph for Twitter activities using the store's get method
+      // Note: This is a simplified implementation - in production you'd need proper query syntax
+      const snapshot = await this.store.get();
+      const activities = snapshot.filter((entity: any) => 
+        entity.type === 'TwitterActivity' &&
+        entity.userAddress === userAddress &&
+        new Date(entity.timestamp) >= sinceTime
+      );
 
       // Convert Hypergraph entities back to our type
       const twitterActivities: TwitterActivityType[] = activities.map((activity: any) => ({

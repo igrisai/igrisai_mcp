@@ -148,25 +148,48 @@ export class TwitterSyncService {
    */
   async syncTwitterActivities(userAddress: string, hoursBack: number = 24): Promise<TwitterActivity[]> {
     try {
-      // This will be called from the database manager
-      // For now, return empty array as we'll integrate this properly
       console.log(`Starting Twitter sync for ${userAddress} (last ${hoursBack} hours)`);
       
-      // TODO: Get Twitter auth from database and fetch activities
-      // const twitterAuth = await db.getTwitterAuth(userAddress);
-      // if (!twitterAuth) {
-      //   console.log(`No Twitter auth found for ${userAddress}`);
-      //   return [];
-      // }
+      // Note: This function will be called from DeadHandServer which will pass twitterAuth
+      // For now, we'll return empty array as the actual integration happens in DeadHandServer
+      // The DeadHandServer will:
+      // 1. Get Twitter auth from database
+      // 2. Call fetchTwitterActivities(twitterAuth, hoursBack)
+      // 3. Call syncToHypergraph(userAddress, activities)
       
-      // const activities = await this.fetchTwitterActivities(twitterAuth, hoursBack);
-      // await this.syncToHypergraph(userAddress, activities);
-      
+      console.log(`Twitter sync initiated for ${userAddress} - will be handled by DeadHandServer`);
       return [];
       
     } catch (error) {
       console.error(`Twitter sync failed for ${userAddress}:`, error);
       return [];
+    }
+  }
+
+  /**
+   * Complete sync process - fetches from Twitter API and syncs to Hypergraph
+   */
+  async performCompleteSync(twitterAuth: TwitterAuth, hoursBack: number = 24): Promise<TwitterActivity[]> {
+    try {
+      console.log(`Performing complete Twitter sync for ${twitterAuth.userAddress} (last ${hoursBack} hours)`);
+      
+      // 1. Fetch activities from Twitter API
+      const activities = await this.fetchTwitterActivities(twitterAuth, hoursBack);
+      
+      if (activities.length === 0) {
+        console.log(`No Twitter activities found for ${twitterAuth.userAddress} in the last ${hoursBack} hours`);
+        return [];
+      }
+      
+      // 2. Sync to Hypergraph
+      await this.syncToHypergraph(twitterAuth.userAddress, activities);
+      
+      console.log(`✅ Complete sync finished: ${activities.length} activities synced to Hypergraph`);
+      return activities;
+      
+    } catch (error) {
+      console.error(`Complete Twitter sync failed for ${twitterAuth.userAddress}:`, error);
+      throw error;
     }
   }
 }
