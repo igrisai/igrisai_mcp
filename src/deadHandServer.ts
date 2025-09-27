@@ -224,19 +224,35 @@ export class DeadHandServer {
     this.wss.on('connection', (ws: any, request) => {
       console.log('New WebSocket connection established');
       
-      // Store the connection immediately upon connection
-      const connectionId = this.getWebSocketConnectionId(ws);
-      this.connections.set(connectionId, {
-        ws,
-        userAddress: '', // Will be set when user sends a message
-        subscribedTokens: new Set(),
-        lastActivity: new Date(),
-      });
-      
       ws.on('message', async (data: Buffer) => {
         try {
           const message = JSON.parse(data.toString());
-          await this.handleWebSocketMessage(ws, message);
+          const { userAddress } = message;
+          
+          // Validate user address
+          if (!userAddress || typeof userAddress !== 'string' || !/^0x[a-fA-F0-9]{40}$/.test(userAddress)) {
+            this.sendWebSocketError(ws, 'Valid user address is required');
+            return;
+          }
+          
+          // Store connection with user address
+          const connectionId = this.getWebSocketConnectionId(ws);
+          this.connections.set(connectionId, {
+            ws,
+            userAddress: userAddress.toLowerCase(),
+            lastActivity: new Date(),
+          });
+          
+          console.log(`WebSocket connected for user: ${userAddress}`);
+          
+          // Send connection confirmation
+          this.sendWebSocketMessage(ws, {
+            type: 'connection_established',
+            userAddress: userAddress.toLowerCase(),
+            message: 'Connected to dead hand monitoring',
+            timestamp: new Date().toISOString(),
+          });
+          
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
           this.sendWebSocketError(ws, 'Invalid message format');
@@ -251,164 +267,9 @@ export class DeadHandServer {
         console.error('WebSocket error:', error);
         this.handleWebSocketDisconnection(ws);
       });
-
-      // Send connection established message
-      this.sendWebSocketMessage(ws, {
-        type: 'connection_established',
-        userAddress: '',
-        timestamp: new Date().toISOString(),
-      });
     });
   }
 
-  private async handleWebSocketMessage(ws: any, message: any): Promise<void> {
-    const { type, userAddress, tokenAddress, chain = 'ethereum' } = message;
-
-    const connectionId = this.getWebSocketConnectionId(ws);
-    
-    // Update connection with user address if provided
-    if (userAddress && this.connections.has(connectionId)) {
-      const connection = this.connections.get(connectionId);
-      connection.userAddress = userAddress;
-      connection.lastActivity = new Date();
-    }
-
-    if (!userAddress) {
-      this.sendWebSocketError(ws, 'User address is required');
-      return;
-    }
-    
-    switch (type) {
-      case 'subscribe_token_activity':
-        await this.handleTokenSubscription(ws, userAddress, tokenAddress, chain);
-        break;
-      
-      case 'unsubscribe_token_activity':
-        this.handleTokenUnsubscription(ws, tokenAddress);
-        break;
-      
-      case 'get_token_analysis':
-        await this.handleTokenAnalysis(ws, userAddress, tokenAddress, chain);
-        break;
-      
-      case 'execute_prompt':
-        await this.handleUserPrompt(ws, userAddress, message.userPrompt);
-        break;
-      
-      default:
-        this.sendWebSocketError(ws, `Unknown message type: ${type}`);
-    }
-  }
-
-  private async handleTokenSubscription(ws: any, userAddress: string, tokenAddress: string, chain: string): Promise<void> {
-    if (!tokenAddress) {
-      this.sendWebSocketError(ws, 'Token address is required for subscription');
-      return;
-    }
-
-    const connectionId = this.getWebSocketConnectionId(ws);
-    
-    // Store or update connection info
-    if (!this.connections.has(connectionId)) {
-      this.connections.set(connectionId, {
-        ws,
-        userAddress,
-        subscribedTokens: new Set(),
-        lastActivity: new Date(),
-      });
-    }
-    
-    const connection = this.connections.get(connectionId);
-    connection.subscribedTokens.add(tokenAddress);
-    connection.userAddress = userAddress;
-    connection.lastActivity = new Date();
-    
-    console.log(`User ${userAddress} subscribed to token ${tokenAddress} activity on ${chain}`);
-    
-    this.sendWebSocketMessage(ws, {
-      type: 'token_activity_update',
-      userAddress,
-      tokenAddress,
-      chain,
-      data: { status: 'subscribed' },
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  private handleTokenUnsubscription(ws: any, tokenAddress: string): void {
-    const connectionId = this.getWebSocketConnectionId(ws);
-    const connection = this.connections.get(connectionId);
-    
-    if (connection) {
-      connection.subscribedTokens.delete(tokenAddress);
-      console.log(`User ${connection.userAddress} unsubscribed from token ${tokenAddress} activity`);
-      
-      this.sendWebSocketMessage(ws, {
-        type: 'token_activity_update',
-        userAddress: connection.userAddress,
-        tokenAddress,
-        data: { status: 'unsubscribed' },
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }
-
-  private async handleUserPrompt(ws: any, userAddress: string, userPrompt: string): Promise<void> {
-    if (!userPrompt) {
-      this.sendWebSocketError(ws, 'User prompt is required');
-      return;
-    }
-
-    try {
-      // Execute user prompt using AI-driven tool selection
-      const result = await this.mcpClient.executeUserPrompt(userPrompt);
-
-      this.sendWebSocketMessage(ws, {
-        type: 'prompt_execution_result',
-        userAddress,
-        data: {
-          toolUsed: result.toolUsed,
-          reasoning: result.reasoning,
-          parameters: result.parameters,
-          result: result.result,
-        },
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error('Error handling user prompt:', error);
-      this.sendWebSocketError(ws, `Failed to execute prompt: ${error}`);
-    }
-  }
-
-  private async handleTokenAnalysis(ws: any, userAddress: string, tokenAddress: string, chain: string): Promise<void> {
-    if (!tokenAddress) {
-      this.sendWebSocketError(ws, 'Token address is required for analysis');
-      return;
-    }
-
-    try {
-      // Use AI-driven approach to get token analysis with wallet address context
-      const prompt = `Check if any tokens have been transferred to wallet address ${userAddress} today. Also check for any transfers sent from this wallet address. Analyze token ${tokenAddress} on ${chain} network for this wallet.`;
-      const result = await this.mcpClient.executeUserPrompt(prompt);
-
-      this.sendWebSocketMessage(ws, {
-        type: 'token_activity_update',
-        userAddress,
-        tokenAddress,
-        chain,
-        data: {
-          toolUsed: result.toolUsed,
-          reasoning: result.reasoning,
-          parameters: result.parameters,
-          result: result.result,
-        },
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      console.error('Error handling token analysis:', error);
-      this.sendWebSocketError(ws, `Failed to analyze token: ${error}`);
-    }
-  }
 
   /**
    * Handle dead hand check when cron job triggers
@@ -695,7 +556,7 @@ export class DeadHandServer {
   }
 
   /**
-   * Broadcast AI status updates to all connected clients
+   * Broadcast AI status updates to specific user
    */
   private broadcastAIStatus(userAddress: string, message: string, statusType: string): void {
     const statusMessage = {
@@ -709,14 +570,16 @@ export class DeadHandServer {
       timestamp: new Date().toISOString()
     };
 
-    // Send to all connections
+    // Send only to connections for this specific user
     this.connections.forEach((connection) => {
-      this.sendWebSocketMessage(connection.ws, statusMessage);
+      if (connection.userAddress === userAddress.toLowerCase()) {
+        this.sendWebSocketMessage(connection.ws, statusMessage);
+      }
     });
   }
 
   /**
-   * Broadcast dead hand result to all connected clients
+   * Broadcast dead hand result to specific user
    */
   private broadcastDeadHandResult(result: DeadHandCheckResult): void {
     const message = {
@@ -730,14 +593,16 @@ export class DeadHandServer {
       timestamp: result.timestamp
     };
 
-    // Send to all connections
+    // Send only to connections for this specific user
     this.connections.forEach((connection) => {
-      this.sendWebSocketMessage(connection.ws, message);
+      if (connection.userAddress === result.userAddress.toLowerCase()) {
+        this.sendWebSocketMessage(connection.ws, message);
+      }
     });
   }
 
   /**
-   * Broadcast dead hand switch event to WebSocket clients
+   * Broadcast dead hand switch event to specific user
    */
   private broadcastDeadHandSwitchEvent(userAddress: string, beneficiaryAddress: string, kernelClient: string): void {
     const message = {
@@ -752,14 +617,16 @@ export class DeadHandServer {
       timestamp: new Date().toISOString()
     };
 
-    // Send to all WebSocket connections
+    // Send only to connections for this specific user
     this.connections.forEach((connection) => {
-      this.sendWebSocketMessage(connection.ws, message);
+      if (connection.userAddress === userAddress.toLowerCase()) {
+        this.sendWebSocketMessage(connection.ws, message);
+      }
     });
   }
 
   /**
-   * Broadcast timer reset event to WebSocket clients
+   * Broadcast timer reset event to specific user
    */
   private broadcastTimerResetEvent(userAddress: string, timeoutSeconds: number, scheduledAt: Date): void {
     const message = {
@@ -773,9 +640,11 @@ export class DeadHandServer {
       timestamp: new Date().toISOString()
     };
 
-    // Send to all WebSocket connections
+    // Send only to connections for this specific user
     this.connections.forEach((connection) => {
-      this.sendWebSocketMessage(connection.ws, message);
+      if (connection.userAddress === userAddress.toLowerCase()) {
+        this.sendWebSocketMessage(connection.ws, message);
+      }
     });
   }
 
