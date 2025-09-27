@@ -208,6 +208,7 @@ export class DeadHandServer {
       }
     });
 
+
     // 404 handler
     this.app.use((req, res) => {
       res.status(404).json({

@@ -301,10 +301,10 @@ export class DatabaseManager {
             SELECT id, user_address, beneficiary_address, kernel_client, timeout, is_active, 
                    ens_name, created_at, updated_at, igris_address
             FROM delegations 
-            WHERE user_address = $1 AND is_active = true
+            WHERE LOWER(user_address) = LOWER($1) AND is_active = true
           `;
           
-          const result = await client.query(query, [userAddress.toLowerCase()]);
+          const result = await client.query(query, [userAddress]);
           
           if (result.rows.length === 0) {
             return null;
