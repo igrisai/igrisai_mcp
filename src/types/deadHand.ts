@@ -45,3 +45,35 @@ export interface DatabaseConfig {
   password: string;
   ssl?: boolean;
 }
+
+export interface TwitterAuth {
+  id: number;
+  userAddress: string;
+  twitterUserId: string;
+  accessToken: string;
+  refreshToken: string | null;
+  twitterUserName: string;
+  expiresAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TwitterActivity {
+  id: string;
+  userAddress: string;
+  activityType: 'tweet' | 'like' | 'retweet' | 'reply';
+  timestamp: Date;
+  content: string;
+  metadata: {
+    tweetId: string;
+    authorId: string;
+    retweetCount: number;
+    likeCount: number;
+  };
+}
+
+export interface TwitterActivityResult {
+  activityFound: boolean;
+  activities: TwitterActivity[];
+  lastActivity: Date | null;
+}

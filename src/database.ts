@@ -1,5 +1,5 @@
 import { Pool, PoolClient } from 'pg';
-import { DatabaseConfig, DeadHandConfig } from './types/deadHand.js';
+import { DatabaseConfig, DeadHandConfig, TwitterAuth } from './types/deadHand.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -229,6 +229,60 @@ export class DatabaseManager {
       console.error('Database connection test failed:', error);
       return false;
     }
+  }
+
+  /**
+   * Get Twitter OAuth credentials for a user
+   */
+  async getTwitterAuth(userAddress: string): Promise<TwitterAuth | null> {
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const client = await this.pool.connect();
+        
+        try {
+          const query = `
+            SELECT id, user_address, twitter_user_id, access_token, refresh_token, 
+                   twitter_user_name, expires_at, created_at, updated_at
+            FROM twitter_auth 
+            WHERE user_address = $1 AND expires_at > NOW()
+          `;
+          
+          const result = await client.query(query, [userAddress.toLowerCase()]);
+          
+          if (result.rows.length === 0) {
+            return null;
+          }
+
+          const row = result.rows[0];
+          return {
+            id: row.id,
+            userAddress: row.user_address,
+            twitterUserId: row.twitter_user_id,
+            accessToken: row.access_token,
+            refreshToken: row.refresh_token,
+            twitterUserName: row.twitter_user_name,
+            expiresAt: row.expires_at,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+          };
+        } finally {
+          client.release();
+        }
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`Twitter auth query attempt ${attempt} failed:`, error);
+        
+        if (attempt < maxRetries) {
+          console.log(`Retrying Twitter auth query in 1 second...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+
+    throw new Error(`Twitter auth query failed after ${maxRetries} attempts: ${lastError?.message}`);
   }
 
   /**

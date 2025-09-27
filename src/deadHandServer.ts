@@ -4,6 +4,7 @@ import { WebSocketServer } from 'ws';
 import { DatabaseManager } from './database.js';
 import { CronScheduler } from './cronScheduler.js';
 import { IgrisAIMCPClient } from './client.js';
+import { twitterSyncService } from './twitterSyncService.js';
 import { InitiateDeadHandRequest, InitiateDeadHandResponse, DeadHandCheckResult } from './types/deadHand.js';
 import dotenv from 'dotenv';
 
@@ -13,7 +14,7 @@ dotenv.config();
 export class DeadHandServer {
   private app: express.Application;
   private server: any;
-  private wss: WebSocketServer;
+  private wss!: WebSocketServer;
   private db: DatabaseManager;
   private cronScheduler: CronScheduler;
   private mcpClient: IgrisAIMCPClient;
@@ -121,6 +122,11 @@ export class DeadHandServer {
           };
           return res.status(409).json(response);
         }
+
+        // Trigger Twitter sync service (async, non-blocking)
+        this.triggerTwitterSync(userAddress).catch(error => {
+          console.error(`Twitter sync failed for ${userAddress}:`, error);
+        });
 
         // Schedule the dead hand check
         const scheduledAt = new Date(Date.now() + config.timeoutSeconds * 1000);
@@ -240,7 +246,7 @@ export class DeadHandServer {
         this.handleWebSocketDisconnection(ws);
       });
 
-      ws.on('error', (error) => {
+      ws.on('error', (error: Error) => {
         console.error('WebSocket error:', error);
         this.handleWebSocketDisconnection(ws);
       });
@@ -439,6 +445,32 @@ export class DeadHandServer {
   }
 
   /**
+   * Trigger Twitter sync for a user (separate service)
+   */
+  private async triggerTwitterSync(userAddress: string): Promise<void> {
+    try {
+      console.log(`Triggering Twitter sync for ${userAddress}`);
+      
+      // Get Twitter OAuth credentials from database
+      const twitterAuth = await this.db.getTwitterAuth(userAddress);
+      
+      if (!twitterAuth) {
+        console.log(`No Twitter auth found for ${userAddress} - skipping Twitter sync`);
+        return;
+      }
+      
+      // Fetch and sync Twitter activities
+      const activities = await twitterSyncService.syncTwitterActivities(userAddress, 24); // Last 24 hours
+      
+      console.log(`Twitter sync completed for ${userAddress}: ${activities.length} activities`);
+      
+    } catch (error) {
+      console.error(`Twitter sync failed for ${userAddress}:`, error);
+      // Don't throw error - Twitter sync failure shouldn't break dead hand check
+    }
+  }
+
+  /**
    * Execute dead hand check for a user
    */
   private async executeDeadHandCheck(userAddress: string, timeoutSeconds: number): Promise<DeadHandCheckResult> {
@@ -467,15 +499,23 @@ export class DeadHandServer {
       const transactionData = result.parameters?.finalResponse || result.reasoning || 'No transaction data available';
       const activityFound = this.determineActivityFromAIResponse(result.reasoning);
       
-      // Broadcast activity determination
-      this.broadcastAIStatus(userAddress, `Activity Found: ${activityFound}`, 'activity_result');
+      // Check Twitter activity from Hypergraph (placeholder for now)
+      this.broadcastAIStatus(userAddress, 'Checking Twitter activities from Hypergraph...', 'twitter_check');
+      const twitterActivityFound = await this.checkTwitterActivityFromHypergraph(userAddress, timeoutSeconds);
+      
+      // Combined activity determination
+      const combinedActivityFound = activityFound || twitterActivityFound;
+      this.broadcastAIStatus(userAddress, 
+        `Activity Analysis: Blockchain ${activityFound ? '✅' : '❌'} | Twitter ${twitterActivityFound ? '✅' : '❌'}`, 
+        'combined_analysis'
+      );
       
       const deadHandResult: DeadHandCheckResult = {
         type: 'deadhand_check_result',
         userAddress,
         aiResponse: result.reasoning || 'Checking Graph token MCP for information',
         transactionData: Array.isArray(transactionData) ? transactionData : [transactionData],
-        activityFound,
+        activityFound: combinedActivityFound,
         timestamp: new Date().toISOString()
       };
 
@@ -501,6 +541,31 @@ export class DeadHandServer {
       };
 
       return errorResult;
+    }
+  }
+
+  /**
+   * Check Twitter activity from Hypergraph (placeholder implementation)
+   */
+  private async checkTwitterActivityFromHypergraph(userAddress: string, timeoutSeconds: number): Promise<boolean> {
+    try {
+      // TODO: Implement Hypergraph query when we add Hypergraph integration
+      // For now, return false as placeholder
+      console.log(`Checking Twitter activity from Hypergraph for ${userAddress} (last ${timeoutSeconds}s)`);
+      
+      // Placeholder: In real implementation, this would query Hypergraph
+      // const activities = await hypergraph.query(TwitterActivity, {
+      //   filter: {
+      //     userAddress,
+      //     timestamp: { $gte: new Date(Date.now() - timeoutSeconds * 1000) }
+      //   }
+      // });
+      
+      return false; // Placeholder
+      
+    } catch (error) {
+      console.error(`Error checking Twitter activity for ${userAddress}:`, error);
+      return false;
     }
   }
 
