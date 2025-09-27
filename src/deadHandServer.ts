@@ -429,11 +429,12 @@ export class DeadHandServer {
       
       console.log(`Dead hand check completed for ${userAddress}. Activity found: ${result.activityFound}`);
       console.log(`Beneficiary address: ${delegation.beneficiaryAddress}`);
+      console.log(`Smart account (kernel client): ${delegation.kernelClient}`);
       
       if (!result.activityFound) {
         // No activity found - trigger dead hand switch
         console.log(`No activity found for ${userAddress}. Triggering dead hand switch.`);
-        await this.triggerDeadHandSwitch(userAddress, delegation.beneficiaryAddress);
+        await this.triggerDeadHandSwitch(userAddress, delegation.beneficiaryAddress, delegation.kernelClient);
       } else {
         // Activity found - reset the timer
         console.log(`Activity found for ${userAddress}. Resetting timer for ${delegation.timeout} seconds.`);
@@ -620,14 +621,16 @@ export class DeadHandServer {
   /**
    * Trigger dead hand switch (placeholder for future implementation)
    */
-  private async triggerDeadHandSwitch(userAddress: string, beneficiaryAddress: string): Promise<void> {
+  private async triggerDeadHandSwitch(userAddress: string, beneficiaryAddress: string, kernelClient: string): Promise<void> {
     try {
       console.log(`🚨 DEAD HAND SWITCH TRIGGERED for ${userAddress}`);
       console.log(`Beneficiary Address: ${beneficiaryAddress}`);
+      console.log(`Smart Account (Kernel Client): ${kernelClient}`);
       
       // Broadcast dead hand switch initiation
       this.broadcastAIStatus(userAddress, '🚨 DEAD HAND SWITCH INITIATED', 'deadhand_initiated');
       this.broadcastAIStatus(userAddress, `Beneficiary Address: ${beneficiaryAddress}`, 'beneficiary_address');
+      this.broadcastAIStatus(userAddress, `Smart Account: ${kernelClient}`, 'smart_account');
       
       // TODO: Implement actual dead hand switch logic
       // This could include:
@@ -650,9 +653,10 @@ export class DeadHandServer {
       
       // For now, just log the event
       console.log(`Dead hand switch executed for user ${userAddress} with beneficiary address ${beneficiaryAddress}`);
+      console.log(`Smart account (kernel client): ${kernelClient}`);
       
       // Broadcast dead hand switch event via WebSocket
-      this.broadcastDeadHandSwitchEvent(userAddress, beneficiaryAddress);
+      this.broadcastDeadHandSwitchEvent(userAddress, beneficiaryAddress, kernelClient);
       
     } catch (error) {
       console.error(`Error triggering dead hand switch for ${userAddress}:`, error);
@@ -735,12 +739,13 @@ export class DeadHandServer {
   /**
    * Broadcast dead hand switch event to WebSocket clients
    */
-  private broadcastDeadHandSwitchEvent(userAddress: string, beneficiaryAddress: string): void {
+  private broadcastDeadHandSwitchEvent(userAddress: string, beneficiaryAddress: string, kernelClient: string): void {
     const message = {
       type: 'deadhand_switch_triggered',
       userAddress,
       data: {
         beneficiaryAddress,
+        smartAccount: kernelClient,
         message: 'Dead hand switch has been triggered',
         timestamp: new Date().toISOString()
       },

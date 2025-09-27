@@ -46,8 +46,8 @@ CREATE TRIGGER update_delegations_updated_at
 -- Insert sample data (optional)
 INSERT INTO delegations (user_address, beneficiary_address, kernel_client, timeout, is_active, ens_name, igris_address) 
 VALUES 
-    ('0xb6a9f22642c126d2700cbd17940b334e866234ae', '0x1234567890123456789012345678901234567890', 'kernel-client-v1', 20, true, null, '0xigris123'),
-    ('0xd8da6bf26964af9d7eed9e03e53415d37aa96045', '0x0987654321098765432109876543210987654321', 'kernel-client-v1', 10, true, 'test.eth', null)
+    ('0xb6a9f22642c126d2700cbd17940b334e866234ae', '0x1234567890123456789012345678901234567890', '0xabcdef1234567890abcdef1234567890abcdef12', 20, true, null, '0xigris123'),
+    ('0xd8da6bf26964af9d7eed9e03e53415d37aa96045', '0x0987654321098765432109876543210987654321', '0xfedcba0987654321fedcba0987654321fedcba09', 10, true, 'test.eth', null)
 ON CONFLICT DO NOTHING;
 
 -- Legacy dead_hand_configs table (deprecated but kept for backward compatibility)
