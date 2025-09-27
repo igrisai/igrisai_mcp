@@ -247,10 +247,10 @@ export class DatabaseManager {
             SELECT id, user_address, twitter_user_id, access_token, refresh_token, 
                    twitter_user_name, expires_at, created_at, updated_at
             FROM twitter_auth 
-            WHERE user_address = $1 AND expires_at > NOW()
+            WHERE LOWER(user_address) = LOWER($1) AND expires_at > NOW()
           `;
           
-          const result = await client.query(query, [userAddress.toLowerCase()]);
+          const result = await client.query(query, [userAddress]);
           
           if (result.rows.length === 0) {
             return null;

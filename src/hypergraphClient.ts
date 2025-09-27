@@ -23,6 +23,7 @@ export class HypergraphClient {
       for (const activity of activities) {
         // Create TwitterActivity entity in Hypergraph
         const hypergraphActivity = new TwitterActivity({
+          id: activity.id,
           userAddress: activity.userAddress,
           activityType: activity.activityType,
           timestamp: activity.timestamp,

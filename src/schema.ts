@@ -1,6 +1,7 @@
 import { Entity, Type } from '@graphprotocol/hypergraph';
 
 export class TwitterActivity extends Entity.Class<TwitterActivity>('TwitterActivity')({
+  id: Type.String,
   userAddress: Type.String,
   activityType: Type.String,
   timestamp: Type.Date,

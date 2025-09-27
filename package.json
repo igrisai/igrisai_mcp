@@ -9,6 +9,8 @@
     "dev": "tsx src/deadHandServer.ts",
     "start": "node dist/index.js",
     "test": "tsx src/test.ts",
+    "test-twitter": "tsx src/testTwitterSync.ts",
+    "test-twitter-mock": "tsx src/testTwitterSyncMock.ts",
     "old-server": "tsx src/index.ts",
     "clean": "rm -rf dist"
   },

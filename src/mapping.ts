@@ -3,27 +3,28 @@ import { Id } from '@graphprotocol/hypergraph';
 
 export const mapping: Mapping = {
   TwitterActivity: {
-    typeIds: [Id("6a00615b-22be-4ea2-a9f7-3554de51ee5f")],
+    typeIds: [Id("8db974d2-bfc3-4dac-9708-620b7a738ffa")],
     properties: {
-      userAddress: Id("e89c3f5e-c542-4d3a-8622-3c36a2bd8e06"),
-      activityType: Id("a4d517d6-a513-4d0e-9d63-838cf1d69a66"),
-      timestamp: Id("384a9e0c-3560-4498-b285-97f44ed15669"),
-      content: Id("61d9cb55-126f-4391-b686-1bb585eccf15"),
-      tweetId: Id("59d2fb4c-1b01-4c11-ae5f-b78f4c18f764"),
-      authorId: Id("af2d456b-6c98-4f7b-846d-010b220999bd"),
-      retweetCount: Id("d8875ade-732b-483f-a43e-1eb6766f2e58"),
-      likeCount: Id("319fff4e-c889-430d-923e-a24cdef1fbfa")
+      id: Id("1da0a3ab-62f0-4768-a0ab-eeb6d51f6e83"),
+      userAddress: Id("26fcae73-4922-4ba4-9684-9fdffe48ffdf"),
+      activityType: Id("cd5eaf86-8e44-47a8-b94f-a8750bfc245f"),
+      timestamp: Id("95101d17-a284-41b9-b71c-b6cc6bde0353"),
+      content: Id("e4e3587f-aabb-4673-9ce2-6260446b79b6"),
+      tweetId: Id("d1a3c4f6-9977-470c-9a5d-e9fc1a01cd63"),
+      authorId: Id("a3cbc5b0-22d2-4cb0-94fb-c34365b6dcf5"),
+      retweetCount: Id("2cee44ae-0391-47f6-8dfb-1ee3ab7d4225"),
+      likeCount: Id("4f5956b2-f08b-4bb6-bc3f-083be809796c")
     },
   },
   DeadHandConfig: {
-    typeIds: [Id("0fc413b5-4a26-49f1-a0d4-9aa44e84ddf2")],
+    typeIds: [Id("554d5911-32e5-4348-80f5-0480ae0556bc")],
     properties: {
-      userAddress: Id("193ef709-30c4-4240-b0b2-c8e98911b367"),
-      smartAccount: Id("af778fbf-b9e5-4f85-a0e5-ff5b31588113"),
-      timeoutSeconds: Id("5ad85532-bdd7-4e62-a19e-9b67d64fa05d"),
-      isActive: Id("22bdf7a5-a463-4334-acfe-37cbd4d8f436"),
-      createdAt: Id("3c3f664b-eb5e-4c7c-82a3-9997288c30d6"),
-      updatedAt: Id("31cbb19d-a22b-4346-9b34-53a0aadb192e")
+      userAddress: Id("5be08394-6402-4bab-b3e0-65a5b5da368c"),
+      smartAccount: Id("36b8fe49-c6f1-4408-a1af-737d0b5d2e07"),
+      timeoutSeconds: Id("1be473ee-5771-43df-9407-4ed986307256"),
+      isActive: Id("7799789a-6432-482b-b529-0dd57b179403"),
+      createdAt: Id("8b23b601-97ef-49c2-9d64-08d289fe0ee1"),
+      updatedAt: Id("8b89edcc-39d0-49e1-8c26-53e26b1b049c")
     },
   },
 }
