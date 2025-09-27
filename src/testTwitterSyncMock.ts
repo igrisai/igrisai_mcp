@@ -97,9 +97,8 @@ class TwitterSyncMockTest {
    * Run the mock Twitter sync test for 30 seconds
    */
   async runMockTest(): Promise<void> {
-    console.log('🚀 Starting Mock Twitter Sync Test...');
+    console.log('🚀 Starting Simple Hypergraph Save & Fetch Test...');
     console.log(`📧 Test User Address: ${this.testUserAddress}`);
-    console.log('⏱️  Test Duration: 30 seconds');
     console.log('🎭 Using Mock Data (No Twitter API calls)');
     console.log('─'.repeat(60));
 
@@ -109,92 +108,48 @@ class TwitterSyncMockTest {
       await this.db.testConnection();
       console.log('✅ Database connection successful');
 
-      // 2. Create mock Twitter auth
-      console.log('2️⃣ Creating mock Twitter auth...');
-      const mockTwitterAuth = this.createMockTwitterAuth();
-      console.log('✅ Mock Twitter auth created:', {
-        twitterUserId: mockTwitterAuth.twitterUserId,
-        twitterUserName: mockTwitterAuth.twitterUserName,
-        expiresAt: mockTwitterAuth.expiresAt
-      });
+      // 2. Generate ONE mock activity for testing
+      console.log('2️⃣ Generating ONE mock Twitter activity...');
+      const mockActivities = this.generateMockTwitterActivities(1);
+      const activity = mockActivities[0];
+      console.log(`✅ Generated activity:`);
+      console.log(`   - Type: ${activity.activityType}`);
+      console.log(`   - Content: ${activity.content}`);
+      console.log(`   - User: ${activity.userAddress}`);
+      console.log(`   - Time: ${activity.timestamp.toISOString()}`);
 
-      // 3. Generate mock activities
-      console.log('3️⃣ Generating mock Twitter activities...');
-      const mockActivities = this.generateMockTwitterActivities(8);
-      console.log(`✅ Generated ${mockActivities.length} mock activities:`);
-      mockActivities.forEach((activity, index) => {
-        console.log(`   ${index + 1}. ${activity.activityType} - ${activity.content.substring(0, 50)}...`);
-      });
-
-      // 4. Test Hypergraph sync with mock data
-      console.log('4️⃣ Testing Hypergraph sync with mock data...');
+      // 3. SAVE to Hypergraph
+      console.log('3️⃣ SAVING to Hypergraph...');
       await this.hypergraphClient.syncTwitterActivities(mockActivities);
-      console.log(`✅ Successfully synced ${mockActivities.length} mock activities to Hypergraph`);
+      console.log(`✅ Successfully SAVED 1 activity to Hypergraph`);
 
-      // 5. Test Hypergraph query
-      console.log('5️⃣ Testing Hypergraph query...');
-      const hasRecentActivity = await this.hypergraphClient.hasRecentTwitterActivity(this.testUserAddress, 24);
-      console.log(`✅ Hypergraph query successful - Recent activity: ${hasRecentActivity ? 'YES' : 'NO'}`);
+      // 4. Wait a moment for indexing
+      console.log('4️⃣ Waiting 3 seconds for data to be indexed...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // 6. Continuous sync test for 30 seconds
-      console.log('6️⃣ Starting continuous mock sync test for 30 seconds...');
-      let syncCount = 0;
-      const startTime = Date.now();
-      const testDuration = 30000; // 30 seconds
-
-      while (Date.now() - startTime < testDuration) {
-        try {
-          console.log(`\n🔄 Mock sync attempt ${++syncCount}...`);
-          
-          // Generate new mock activities each time
-          const newMockActivities = this.generateMockTwitterActivities(3);
-          console.log(`📊 Generated ${newMockActivities.length} new mock activities`);
-          
-          // Sync to Hypergraph
-          await this.hypergraphClient.syncTwitterActivities(newMockActivities);
-          console.log(`✅ Synced ${newMockActivities.length} mock activities to Hypergraph`);
-          
-          // Test query
-          const queryResult = await this.hypergraphClient.getTwitterActivities(this.testUserAddress, 24);
-          console.log(`🔍 Query result: ${queryResult.length} total activities found in Hypergraph`);
-          
-          // Show some activity details
-          if (queryResult.length > 0) {
-            const latestActivity = queryResult[0];
-            console.log(`📝 Latest activity: ${latestActivity.activityType} - ${latestActivity.content.substring(0, 40)}...`);
-          }
-          
-          // Wait 5 seconds before next sync
-          await new Promise(resolve => setTimeout(resolve, 5000));
-          
-        } catch (error) {
-          console.error(`❌ Mock sync attempt ${syncCount} failed:`, error);
-          // Continue with next attempt
-        }
-      }
-
-      console.log('\n🎉 Mock Twitter Sync Test Completed!');
-      console.log(`📈 Total sync attempts: ${syncCount}`);
-      console.log('─'.repeat(60));
-
-      // 7. Final verification
-      console.log('7️⃣ Final verification...');
-      const finalActivityCheck = await this.hypergraphClient.hasRecentTwitterActivity(this.testUserAddress, 24);
-      const finalActivityCount = await this.hypergraphClient.getTwitterActivities(this.testUserAddress, 24);
+      // 5. FETCH from Hypergraph
+      console.log('5️⃣ FETCHING from Hypergraph...');
+      const queryResult = await this.hypergraphClient.getTwitterActivities(this.testUserAddress, 24);
+      console.log(`🔍 FETCH result: ${queryResult.length} activities found`);
       
-      console.log(`✅ Final status:`);
-      console.log(`   - Recent activity detected: ${finalActivityCheck ? 'YES' : 'NO'}`);
-      console.log(`   - Total activities in Hypergraph: ${finalActivityCount.length}`);
-      
-      // Show sample activities
-      if (finalActivityCount.length > 0) {
-        console.log(`\n📋 Sample activities in Hypergraph:`);
-        finalActivityCount.slice(0, 3).forEach((activity, index) => {
-          console.log(`   ${index + 1}. [${activity.activityType}] ${activity.content.substring(0, 60)}...`);
-          console.log(`      - Tweet ID: ${activity.metadata.tweetId}`);
-          console.log(`      - Likes: ${activity.metadata.likeCount}, Retweets: ${activity.metadata.retweetCount}`);
-          console.log(`      - Time: ${activity.timestamp.toISOString()}`);
+      // 6. Show detailed results
+      console.log('6️⃣ Detailed Results:');
+      if (queryResult.length > 0) {
+        console.log(`✅ SUCCESS: Data was saved and retrieved!`);
+        queryResult.forEach((retrievedActivity, index) => {
+          console.log(`   Activity ${index + 1}:`);
+          console.log(`   - Type: ${retrievedActivity.activityType}`);
+          console.log(`   - Content: ${retrievedActivity.content}`);
+          console.log(`   - User: ${retrievedActivity.userAddress}`);
+          console.log(`   - Time: ${retrievedActivity.timestamp.toISOString()}`);
+          console.log(`   - Tweet ID: ${retrievedActivity.metadata.tweetId}`);
         });
+      } else {
+        console.log(`❌ ISSUE: Data was saved but not retrieved`);
+        console.log(`   This could mean:`);
+        console.log(`   - Data is still being indexed`);
+        console.log(`   - Query functionality needs implementation`);
+        console.log(`   - Different data format than expected`);
       }
 
     } catch (error) {

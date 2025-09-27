@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 
 dotenv.config();
-import { Graph, Ipfs, getWalletClient } from '@graphprotocol/grc-20';
+import { Graph, Ipfs, getSmartAccountWalletClient } from '@graphprotocol/grc-20';
 import { TwitterActivity as TwitterActivityType } from './types/deadHand.js';
 import { privateKeyToAccount } from 'viem/accounts';
 
@@ -17,7 +17,7 @@ export class HypergraphClient {
       console.warn('⚠️  IGRIS_WALLET_PRIVATE_KEY not found in environment variables');
     } else {
       const account = privateKeyToAccount(this.privateKey as `0x${string}`);
-      console.log(`✅ GRC-20 client initialized for address: ${account.address}`);
+      console.log(`✅ GRC-20 Geo Account client initialized for address: ${account.address}`);
     }
   }
 
@@ -36,8 +36,8 @@ export class HypergraphClient {
         throw new Error('Public space ID not configured. Please set HYPERGRAPH_PUBLIC_SPACE_ID environment variable.');
       }
 
-      // Create wallet client
-      const walletClient = await getWalletClient({
+      // Create smart account wallet client for Geo account
+      const smartAccountWalletClient = await getSmartAccountWalletClient({
         privateKey: this.privateKey as `0x${string}`,
       });
 
@@ -78,10 +78,8 @@ export class HypergraphClient {
         
         const { to, data } = await result.json();
         
-        // Send transaction onchain
-        const txResult = await walletClient.sendTransaction({
-          // @ts-expect-error - TODO: fix the types error (matching the example)
-          account: walletClient.account,
+        // Send transaction onchain using smart account
+        const txResult = await smartAccountWalletClient.sendTransaction({
           to: to,
           value: 0n,
           data: data,
@@ -98,18 +96,94 @@ export class HypergraphClient {
 
   /**
    * Query Twitter activities from Hypergraph for a user within a time range
-   * TODO: Implement querying functionality later
    */
   async getTwitterActivities(userAddress: string, hoursBack: number = 24): Promise<TwitterActivityType[]> {
     try {
-      console.log(`⚠️  Query functionality not yet implemented - focusing on saving for now`);
-      console.log(`📊 Would query activities for ${userAddress} (last ${hoursBack} hours)`);
-      return [];
+      console.log(`🔍 Querying activities for ${userAddress} (last ${hoursBack} hours)`);
+      
+      if (!this.publicSpaceId) {
+        throw new Error('Public space ID not configured');
+      }
+
+      // Query the Hypergraph space for entities
+      // Note: This is a simplified approach - in production you'd want more sophisticated filtering
+      const queryUrl = `${Graph.TESTNET_API_ORIGIN}/space/${this.publicSpaceId}/entities`;
+      
+      console.log(`📡 Querying: ${queryUrl}`);
+      
+      const response = await fetch(queryUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Query failed with status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(`📊 Raw query response:`, JSON.stringify(data, null, 2));
+      
+      // Parse the response and filter for Twitter activities
+      // This is where we'd need to implement proper filtering based on the actual response format
+      const activities: TwitterActivityType[] = [];
+      
+      if (data.entities && Array.isArray(data.entities)) {
+        for (const entity of data.entities) {
+          // Check if this entity is a Twitter activity
+          if (entity.name && entity.name.includes('tweet') || entity.name.includes('like') || entity.name.includes('retweet')) {
+            // Convert entity back to TwitterActivity format
+            const activity: TwitterActivityType = {
+              id: entity.id || `activity_${Date.now()}`,
+              userAddress: this.extractUserAddressFromEntity(entity) || userAddress,
+              activityType: this.extractActivityTypeFromEntity(entity),
+              timestamp: new Date(entity.createdAt || Date.now()),
+              content: entity.description || entity.name || 'Unknown content',
+              metadata: {
+                tweetId: entity.id || '',
+                authorId: this.extractUserAddressFromEntity(entity) || userAddress,
+                retweetCount: 0,
+                likeCount: 0
+              }
+            };
+            activities.push(activity);
+          }
+        }
+      }
+      
+      console.log(`✅ Found ${activities.length} Twitter activities`);
+      return activities;
       
     } catch (error) {
       console.error('Error querying Twitter activities from Hypergraph:', error);
       return [];
     }
+  }
+
+  /**
+   * Extract user address from entity data
+   */
+  private extractUserAddressFromEntity(entity: any): string | null {
+    // Try to extract user address from entity name or description
+    if (entity.name && entity.name.includes('0x')) {
+      const match = entity.name.match(/0x[a-fA-F0-9]{40}/);
+      return match ? match[0] : null;
+    }
+    return null;
+  }
+
+  /**
+   * Extract activity type from entity data
+   */
+  private extractActivityTypeFromEntity(entity: any): 'tweet' | 'like' | 'retweet' | 'reply' {
+    if (entity.name) {
+      const name = entity.name.toLowerCase();
+      if (name.includes('like')) return 'like';
+      if (name.includes('retweet')) return 'retweet';
+      if (name.includes('reply')) return 'reply';
+    }
+    return 'tweet'; // Default
   }
 
   async hasRecentTwitterActivity(userAddress: string, hoursBack: number = 24): Promise<boolean> {
