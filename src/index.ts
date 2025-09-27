@@ -1,4 +1,4 @@
-import { TokenActivityWebSocketServer } from '../websocketServer.js';
+import { TokenActivityWebSocketServer } from './websocketServer.js';
 import dotenv from 'dotenv';
 
 // Load environment variables
