@@ -6,7 +6,7 @@ import { CronScheduler } from './cronScheduler.js';
 import { IgrisAIMCPClient } from './client.js';
 import { twitterSyncService } from './twitterSyncService.js';
 import { hypergraphClient } from './hypergraphClient.js';
-import { InitiateDeadHandRequest, InitiateDeadHandResponse, DeadHandCheckResult } from './types/deadHand.js';
+import { InitiateDeadHandRequest, InitiateDeadHandResponse, DeadHandCheckResult, Delegation } from './types/deadHand.js';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -101,13 +101,13 @@ export class DeadHandServer {
 
         console.log(`Initiating dead hand check for user: ${userAddress}`);
 
-        // Get dead hand config from database
-        const config = await this.db.getDeadHandConfig(userAddress);
+        // Get delegation from database
+        const delegation = await this.db.getDelegation(userAddress);
         
-        if (!config) {
+        if (!delegation) {
           const response: InitiateDeadHandResponse = {
             status: 'error',
-            message: 'No dead hand configuration found for this user',
+            message: 'No delegation configuration found for this user',
             error: 'User not found in database'
           };
           return res.status(404).json(response);
@@ -130,10 +130,10 @@ export class DeadHandServer {
         });
 
         // Schedule the dead hand check
-        const scheduledAt = new Date(Date.now() + config.timeoutSeconds * 1000);
+        const scheduledAt = new Date(Date.now() + delegation.timeout * 1000);
         const jobId = this.cronScheduler.scheduleDeadHandCheck(
           userAddress,
-          config.timeoutSeconds,
+          delegation.timeout,
           this.handleDeadHandCheck.bind(this)
         );
 
@@ -141,10 +141,10 @@ export class DeadHandServer {
           status: 'success',
           message: 'Dead hand check initiated successfully',
           scheduledAt: scheduledAt.toISOString(),
-          timeoutSeconds: config.timeoutSeconds
+          timeoutSeconds: delegation.timeout
         };
 
-        console.log(`Dead hand check scheduled for ${userAddress} in ${config.timeoutSeconds} seconds`);
+        console.log(`Dead hand check scheduled for ${userAddress} in ${delegation.timeout} seconds`);
         res.json(response);
 
       } catch (error) {
@@ -417,27 +417,27 @@ export class DeadHandServer {
     try {
       console.log(`Executing dead hand check for ${userAddress}`);
       
-      // Get config again to ensure we have the latest data
-      const config = await this.db.getDeadHandConfig(userAddress);
-      if (!config) {
-        console.error(`No config found for user ${userAddress} during dead hand check`);
+      // Get delegation again to ensure we have the latest data
+      const delegation = await this.db.getDelegation(userAddress);
+      if (!delegation) {
+        console.error(`No delegation found for user ${userAddress} during dead hand check`);
         return;
       }
 
       // Execute dead hand check
-      const result = await this.executeDeadHandCheck(userAddress, config.timeoutSeconds);
+      const result = await this.executeDeadHandCheck(userAddress, delegation.timeout);
       
       console.log(`Dead hand check completed for ${userAddress}. Activity found: ${result.activityFound}`);
-      console.log(`Smart account: ${config.smartAccount}`);
+      console.log(`Beneficiary address: ${delegation.beneficiaryAddress}`);
       
       if (!result.activityFound) {
         // No activity found - trigger dead hand switch
         console.log(`No activity found for ${userAddress}. Triggering dead hand switch.`);
-        await this.triggerDeadHandSwitch(userAddress, config.smartAccount);
+        await this.triggerDeadHandSwitch(userAddress, delegation.beneficiaryAddress);
       } else {
         // Activity found - reset the timer
-        console.log(`Activity found for ${userAddress}. Resetting timer for ${config.timeoutSeconds} seconds.`);
-        await this.resetDeadHandTimer(userAddress, config.timeoutSeconds);
+        console.log(`Activity found for ${userAddress}. Resetting timer for ${delegation.timeout} seconds.`);
+        await this.resetDeadHandTimer(userAddress, delegation.timeout);
       }
       
     } catch (error) {
@@ -620,14 +620,14 @@ export class DeadHandServer {
   /**
    * Trigger dead hand switch (placeholder for future implementation)
    */
-  private async triggerDeadHandSwitch(userAddress: string, smartAccount: string): Promise<void> {
+  private async triggerDeadHandSwitch(userAddress: string, beneficiaryAddress: string): Promise<void> {
     try {
       console.log(`🚨 DEAD HAND SWITCH TRIGGERED for ${userAddress}`);
-      console.log(`Smart Account: ${smartAccount}`);
+      console.log(`Beneficiary Address: ${beneficiaryAddress}`);
       
       // Broadcast dead hand switch initiation
       this.broadcastAIStatus(userAddress, '🚨 DEAD HAND SWITCH INITIATED', 'deadhand_initiated');
-      this.broadcastAIStatus(userAddress, `Smart Account: ${smartAccount}`, 'smart_account');
+      this.broadcastAIStatus(userAddress, `Beneficiary Address: ${beneficiaryAddress}`, 'beneficiary_address');
       
       // TODO: Implement actual dead hand switch logic
       // This could include:
@@ -649,10 +649,10 @@ export class DeadHandServer {
       this.broadcastAIStatus(userAddress, '✅ Dead hand switch completed successfully', 'deadhand_completed');
       
       // For now, just log the event
-      console.log(`Dead hand switch executed for user ${userAddress} with smart account ${smartAccount}`);
+      console.log(`Dead hand switch executed for user ${userAddress} with beneficiary address ${beneficiaryAddress}`);
       
       // Broadcast dead hand switch event via WebSocket
-      this.broadcastDeadHandSwitchEvent(userAddress, smartAccount);
+      this.broadcastDeadHandSwitchEvent(userAddress, beneficiaryAddress);
       
     } catch (error) {
       console.error(`Error triggering dead hand switch for ${userAddress}:`, error);
@@ -735,12 +735,12 @@ export class DeadHandServer {
   /**
    * Broadcast dead hand switch event to WebSocket clients
    */
-  private broadcastDeadHandSwitchEvent(userAddress: string, smartAccount: string): void {
+  private broadcastDeadHandSwitchEvent(userAddress: string, beneficiaryAddress: string): void {
     const message = {
       type: 'deadhand_switch_triggered',
       userAddress,
       data: {
-        smartAccount,
+        beneficiaryAddress,
         message: 'Dead hand switch has been triggered',
         timestamp: new Date().toISOString()
       },

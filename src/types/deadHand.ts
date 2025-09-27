@@ -1,3 +1,17 @@
+export interface Delegation {
+  id: number;
+  userAddress: string;
+  beneficiaryAddress: string;
+  kernelClient: string;
+  timeout: number;
+  isActive: boolean;
+  ensName?: string | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  igrisAddress?: string | null;
+}
+
+// Keep DeadHandConfig for backward compatibility during transition
 export interface DeadHandConfig {
   id: number;
   userAddress: string;

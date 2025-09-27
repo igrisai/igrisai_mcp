@@ -1,5 +1,5 @@
 import { Pool, PoolClient } from 'pg';
-import { DatabaseConfig, DeadHandConfig, TwitterAuth } from './types/deadHand.js';
+import { DatabaseConfig, DeadHandConfig, Delegation, TwitterAuth } from './types/deadHand.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -283,6 +283,208 @@ export class DatabaseManager {
     }
 
     throw new Error(`Twitter auth query failed after ${maxRetries} attempts: ${lastError?.message}`);
+  }
+
+  /**
+   * Get delegation for a user address with retry logic
+   */
+  async getDelegation(userAddress: string): Promise<Delegation | null> {
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const client = await this.pool.connect();
+        
+        try {
+          const query = `
+            SELECT id, user_address, beneficiary_address, kernel_client, timeout, is_active, 
+                   ens_name, created_at, updated_at, igris_address
+            FROM delegations 
+            WHERE user_address = $1 AND is_active = true
+          `;
+          
+          const result = await client.query(query, [userAddress.toLowerCase()]);
+          
+          if (result.rows.length === 0) {
+            return null;
+          }
+
+          const row = result.rows[0];
+          return {
+            id: row.id,
+            userAddress: row.user_address,
+            beneficiaryAddress: row.beneficiary_address,
+            kernelClient: row.kernel_client,
+            timeout: row.timeout,
+            isActive: row.is_active,
+            ensName: row.ens_name,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            igrisAddress: row.igris_address
+          };
+        } finally {
+          client.release();
+        }
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`Delegation query attempt ${attempt} failed:`, error);
+        
+        if (attempt < maxRetries) {
+          console.log(`Retrying delegation query in 1 second...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+
+    throw new Error(`Delegation query failed after ${maxRetries} attempts: ${lastError?.message}`);
+  }
+
+  /**
+   * Create a new delegation
+   */
+  async createDelegation(delegation: Omit<Delegation, 'id' | 'createdAt' | 'updatedAt'>): Promise<Delegation> {
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const client = await this.pool.connect();
+        
+        try {
+          const query = `
+            INSERT INTO delegations (user_address, beneficiary_address, kernel_client, timeout, is_active, ens_name, igris_address)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id, user_address, beneficiary_address, kernel_client, timeout, is_active, 
+                      ens_name, created_at, updated_at, igris_address
+          `;
+          
+          const result = await client.query(query, [
+            delegation.userAddress.toLowerCase(),
+            delegation.beneficiaryAddress.toLowerCase(),
+            delegation.kernelClient,
+            delegation.timeout,
+            delegation.isActive,
+            delegation.ensName,
+            delegation.igrisAddress
+          ]);
+
+          const row = result.rows[0];
+          return {
+            id: row.id,
+            userAddress: row.user_address,
+            beneficiaryAddress: row.beneficiary_address,
+            kernelClient: row.kernel_client,
+            timeout: row.timeout,
+            isActive: row.is_active,
+            ensName: row.ens_name,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            igrisAddress: row.igris_address
+          };
+        } finally {
+          client.release();
+        }
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`Delegation insert attempt ${attempt} failed:`, error);
+        
+        if (attempt < maxRetries) {
+          console.log(`Retrying delegation insert in 1 second...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+
+    throw new Error(`Delegation insert failed after ${maxRetries} attempts: ${lastError?.message}`);
+  }
+
+  /**
+   * Update delegation
+   */
+  async updateDelegation(userAddress: string, updates: Partial<Delegation>): Promise<Delegation | null> {
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const client = await this.pool.connect();
+        
+        try {
+          const setClause = [];
+          const values = [];
+          let paramIndex = 1;
+
+          if (updates.beneficiaryAddress !== undefined) {
+            setClause.push(`beneficiary_address = $${paramIndex++}`);
+            values.push(updates.beneficiaryAddress.toLowerCase());
+          }
+          if (updates.kernelClient !== undefined) {
+            setClause.push(`kernel_client = $${paramIndex++}`);
+            values.push(updates.kernelClient);
+          }
+          if (updates.timeout !== undefined) {
+            setClause.push(`timeout = $${paramIndex++}`);
+            values.push(updates.timeout);
+          }
+          if (updates.isActive !== undefined) {
+            setClause.push(`is_active = $${paramIndex++}`);
+            values.push(updates.isActive);
+          }
+          if (updates.ensName !== undefined) {
+            setClause.push(`ens_name = $${paramIndex++}`);
+            values.push(updates.ensName);
+          }
+          if (updates.igrisAddress !== undefined) {
+            setClause.push(`igris_address = $${paramIndex++}`);
+            values.push(updates.igrisAddress);
+          }
+
+          setClause.push(`updated_at = CURRENT_TIMESTAMP`);
+          values.push(userAddress.toLowerCase());
+
+          const query = `
+            UPDATE delegations 
+            SET ${setClause.join(', ')}
+            WHERE user_address = $${paramIndex}
+            RETURNING id, user_address, beneficiary_address, kernel_client, timeout, is_active, 
+                      ens_name, created_at, updated_at, igris_address
+          `;
+          
+          const result = await client.query(query, values);
+
+          if (result.rows.length === 0) {
+            return null;
+          }
+
+          const row = result.rows[0];
+          return {
+            id: row.id,
+            userAddress: row.user_address,
+            beneficiaryAddress: row.beneficiary_address,
+            kernelClient: row.kernel_client,
+            timeout: row.timeout,
+            isActive: row.is_active,
+            ensName: row.ens_name,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            igrisAddress: row.igris_address
+          };
+        } finally {
+          client.release();
+        }
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`Delegation update attempt ${attempt} failed:`, error);
+        
+        if (attempt < maxRetries) {
+          console.log(`Retrying delegation update in 1 second...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+
+    throw new Error(`Delegation update failed after ${maxRetries} attempts: ${lastError?.message}`);
   }
 
   /**
