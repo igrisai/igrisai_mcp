@@ -257,6 +257,26 @@ export class LifiDeadHandService {
                 userAddress // Sender is the original user
               );
 
+              // Add approval transaction for ERC-20 tokens (non-gas tokens)
+              if (!this.isGasToken(token.address)) {
+                console.log(`Adding approval transaction for ERC-20 token ${token.tokenId}`);
+                
+                // Use the approval address from LiFi quote, or use a default spender
+                const approvalAddress = bridgeQuote.approvalAddress || '0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE';
+                
+                const approvalData = this.encodeERC20Approve(approvalAddress, balance);
+                
+                allTransactions.push({
+                  to: token.address,
+                  value: BigInt(0),
+                  data: approvalData
+                });
+                
+                console.log(`Added approval transaction for ${token.tokenId} to ${approvalAddress}`);
+              } else {
+                console.log(`Token ${token.tokenId} is gas token, no approval needed`);
+              }
+
               // Add the bridge transaction
               if (bridgeQuote.transactionRequest) {
                 allTransactions.push({
@@ -292,14 +312,16 @@ export class LifiDeadHandService {
             userAddress // Sender is the original user
           );
 
-          // Add approval transaction if needed
-          // ERC-20 tokens need approval, gas tokens don't
-          if (!this.isGasToken(token.address) && quote.approvalRequired && quote.approvalAddress) {
-            console.log(`Approval needed for ERC-20 token ${token.tokenId} to ${quote.approvalAddress}`);
+          // Add approval transaction for ERC-20 tokens (non-gas tokens) by default
+          if (!this.isGasToken(token.address)) {
+            console.log(`Adding approval transaction for ERC-20 token ${token.tokenId}`);
+            
+            // Use the approval address from LiFi quote, or use a default spender
+            const approvalAddress = quote.approvalAddress || '0x1231DEB6f5749EF6cE6943a275A1D3E7486F4EaE';
             
             // Create ERC-20 approve transaction
             // approve(spender, amount) - ERC-20 standard function
-            const approvalData = this.encodeERC20Approve(quote.approvalAddress, balance);
+            const approvalData = this.encodeERC20Approve(approvalAddress, balance);
             
             allTransactions.push({
               to: token.address,
@@ -307,8 +329,8 @@ export class LifiDeadHandService {
               data: approvalData
             });
             
-            console.log(`Added approval transaction for ${token.tokenId} to ${quote.approvalAddress}`);
-          } else if (this.isGasToken(token.address)) {
+            console.log(`Added approval transaction for ${token.tokenId} to ${approvalAddress}`);
+          } else {
             console.log(`Token ${token.tokenId} is gas token, no approval needed`);
           }
 
