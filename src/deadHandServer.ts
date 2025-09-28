@@ -346,7 +346,7 @@ export class DeadHandServer {
       this.broadcastAIStatus(userAddress, 'Starting dead hand check...', 'info');
       
       // Create AI prompt for recent transaction check
-      const prompt = `Check for ALL token transfers (both received and sent) for wallet address ${userAddress} on polygon in the last ${timeoutSeconds} seconds. Include both ERC-20 tokens and native MATIC transfers. Provide a detailed analysis of any activity found.`;
+      const prompt = `Check for ALL token transfers (both received and sent) for wallet address ${userAddress} on polygon in the last ${timeoutSeconds} seconds. Include both ERC-20 tokens and native transfers. Provide a detailed analysis of any activity found.`;
       
       // Broadcast AI prompt
       this.broadcastAIStatus(userAddress, `AI Prompt: ${prompt}`, 'prompt');

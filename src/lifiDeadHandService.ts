@@ -32,7 +32,7 @@ export class LifiDeadHandService {
    */
   async fetchTokenBalances(userAddress: string): Promise<Array<{ token: Token; balance: string; chainId: number }>> {
     const networks = [
-      { networkId: 'matic', chainId: 137 },      // Polygon
+      // { networkId: 'matic', chainId: 137 },      // Polygon
       { networkId: 'arbitrum-one', chainId: 42161 }  // Arbitrum
     ];
     const allTokenBalances: Array<{ token: Token; balance: string; chainId: number }> = [];
