@@ -493,7 +493,7 @@ export class DeadHandServer {
       // Broadcast dead hand switch initiation
       this.broadcastAIStatus(userAddress, '🚨 DEAD HAND SWITCH INITIATED', 'deadhand_initiated');
       this.broadcastAIStatus(userAddress, `Beneficiary Address: ${beneficiaryAddress}`, 'beneficiary_address');
-      this.broadcastAIStatus(userAddress, `Smart Account: ${kernelClient}`, 'smart_account');
+      // this.broadcastAIStatus(userAddress, `Smart Account: ${kernelClient}`, 'smart_account');
       
       // Step 1: Analyze wallet balances
       this.broadcastAIStatus(userAddress, 'Step 1: Analyzing wallet token balances...', 'deadhand_step');
@@ -505,7 +505,7 @@ export class DeadHandServer {
         return;
       }
       
-      this.broadcastAIStatus(userAddress, `Found ${tokenBalances.length} tokens to bridge to USDC`, 'deadhand_step');
+      this.broadcastAIStatus(userAddress, `Found ${tokenBalances.length} tokens to bridge to ETH`, 'deadhand_step');
       
       // Step 2: Execute LiFi bridge transactions
       this.broadcastAIStatus(userAddress, 'Step 2: Executing LiFi bridge transactions...', 'deadhand_step');
