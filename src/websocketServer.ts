@@ -336,25 +336,25 @@ export class TokenActivityWebSocketServer {
   }
 
   /**
-   * Register a callback for dead hand check results
+   * Register a callback for dead man switch check results
    */
   registerDeadHandCallback(userAddress: string, callback: (result: DeadHandCheckResult) => void): void {
     this.deadHandCallbacks.set(userAddress, callback);
   }
 
   /**
-   * Unregister a dead hand callback
+   * Unregister a dead man switch callback
    */
   unregisterDeadHandCallback(userAddress: string): void {
     this.deadHandCallbacks.delete(userAddress);
   }
 
   /**
-   * Execute dead hand check for a user
+   * Execute dead man switch check for a user
    */
   async executeDeadHandCheck(userAddress: string, timeoutSeconds: number): Promise<DeadHandCheckResult> {
     try {
-      console.log(`Executing dead hand check for ${userAddress} (timeout: ${timeoutSeconds}s)`);
+      console.log(`Executing dead man switch check for ${userAddress} (timeout: ${timeoutSeconds}s)`);
       
       // Create AI prompt for recent transaction check
       const prompt = `Check for ALL token transfers (both received and sent) for wallet address ${userAddress} on polygon in the last ${timeoutSeconds} seconds. Include both ERC-20 tokens and native MATIC transfers. Provide a detailed analysis of any activity found.`;
@@ -384,11 +384,11 @@ export class TokenActivityWebSocketServer {
       // Broadcast to all connected clients
       this.broadcastDeadHandResult(deadHandResult);
 
-      console.log(`Dead hand check completed for ${userAddress}. Activity found: ${activityFound}`);
+      console.log(`dead man switch check completed for ${userAddress}. Activity found: ${activityFound}`);
       return deadHandResult;
 
     } catch (error) {
-      console.error(`Error executing dead hand check for ${userAddress}:`, error);
+      console.error(`Error executing dead man switch check for ${userAddress}:`, error);
       
       const errorResult: DeadHandCheckResult = {
         type: 'deadhand_check_result',
@@ -460,7 +460,7 @@ export class TokenActivityWebSocketServer {
   }
 
   /**
-   * Broadcast dead hand result to all connected clients
+   * Broadcast dead man switch result to all connected clients
    */
   private broadcastDeadHandResult(result: DeadHandCheckResult): void {
     const message: TokenActivityMessage = {
@@ -491,7 +491,7 @@ export class TokenActivityWebSocketServer {
     });
     this.connections.clear();
     
-    // Clear dead hand callbacks
+    // Clear dead man switch callbacks
     this.deadHandCallbacks.clear();
     
     // Disconnect MCP client

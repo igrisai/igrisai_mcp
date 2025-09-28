@@ -216,7 +216,7 @@ export class LifiDeadHandService {
   }
 
   /**
-   * Execute dead hand switch by bridging/swapping all tokens to USDC/pyUSDC
+   * Execute dead man switch switch by bridging/swapping all tokens to USDC/pyUSDC
    */
   async executeDeadHandSwitch(
     userAddress: string,
@@ -225,7 +225,7 @@ export class LifiDeadHandService {
     tokenBalances: Array<{ token: Token; balance: string; chainId: number }>
   ): Promise<DeadHandSwitchResult | TransactionResult[]> {
     try {
-      console.log(`🚨 Executing dead hand switch for ${userAddress}`);
+      console.log(`🚨 Executing dead man switch switch for ${userAddress}`);
       console.log(`Beneficiary: ${beneficiaryAddress}`);
       console.log(`Kernel Client: ${kernelClient}`);
       console.log(`Tokens to process: ${tokenBalances.length}`);
@@ -350,7 +350,7 @@ export class LifiDeadHandService {
       }
 
       if (allTransactions.length === 0) {
-        console.log('No supported tokens found for bridging - dead hand switch completed with no action needed');
+        console.log('No supported tokens found for bridging - dead man switch switch completed with no action needed');
         return [];
       }
 
@@ -359,7 +359,7 @@ export class LifiDeadHandService {
       // Return transaction data for user to sign instead of executing
       return {
         transactions: allTransactions,
-        message: `Dead hand switch prepared ${allTransactions.length} transactions. Please sign and execute these transactions to complete the bridge.`,
+        message: `dead man switch switch prepared ${allTransactions.length} transactions. Please sign and execute these transactions to complete the bridge.`,
         requiresUserAction: true,
         chainId: 137, // Polygon chain ID
         chainName: 'Polygon',
@@ -367,7 +367,7 @@ export class LifiDeadHandService {
       };
 
     } catch (error) {
-      console.error('Dead hand switch execution failed:', error);
+      console.error('dead man switch switch execution failed:', error);
       throw error;
     }
   }

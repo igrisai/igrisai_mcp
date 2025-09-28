@@ -75,7 +75,7 @@ export class DeadHandServer {
       }
     });
 
-    // Initiate dead hand endpoint
+    // Initiate dead man switch endpoint
     this.app.post('/initiate-deadhand', async (req, res) => {
       try {
         const { userAddress }: InitiateDeadHandRequest = req.body;
@@ -100,7 +100,7 @@ export class DeadHandServer {
           return res.status(400).json(response);
         }
 
-        console.log(`Initiating dead hand check for user: ${userAddress}`);
+        console.log(`Initiating dead man switch check for user: ${userAddress}`);
 
         // Get delegation from database
         const delegation = await this.db.getDelegation(userAddress);
@@ -119,8 +119,8 @@ export class DeadHandServer {
         if (existingJob) {
           const response: InitiateDeadHandResponse = {
             status: 'error',
-            message: 'Dead hand check already scheduled for this user',
-            error: 'User already has an active dead hand check'
+            message: 'dead man switch check already scheduled for this user',
+            error: 'User already has an active dead man switch check'
           };
           return res.status(409).json(response);
         }
@@ -130,7 +130,7 @@ export class DeadHandServer {
           console.error(`Twitter sync failed for ${userAddress}:`, error);
         });
 
-        // Schedule the dead hand check
+        // Schedule the dead man switch check
         const scheduledAt = new Date(Date.now() + delegation.timeout * 1000);
         const jobId = this.cronScheduler.scheduleDeadHandCheck(
           userAddress,
@@ -140,20 +140,20 @@ export class DeadHandServer {
 
         const response: InitiateDeadHandResponse = {
           status: 'success',
-          message: 'Dead hand check initiated successfully',
+          message: 'dead man switch check initiated successfully',
           scheduledAt: scheduledAt.toISOString(),
           timeoutSeconds: delegation.timeout
         };
 
-        console.log(`Dead hand check scheduled for ${userAddress} in ${delegation.timeout} seconds`);
+        console.log(`dead man switch check scheduled for ${userAddress} in ${delegation.timeout} seconds`);
         res.json(response);
 
       } catch (error) {
-        console.error('Error initiating dead hand check:', error);
+        console.error('Error initiating dead man switch check:', error);
         
         const response: InitiateDeadHandResponse = {
           status: 'error',
-          message: 'Failed to initiate dead hand check',
+          message: 'Failed to initiate dead man switch check',
           error: error instanceof Error ? error.message : 'Unknown error'
         };
         
@@ -251,7 +251,7 @@ export class DeadHandServer {
           this.sendWebSocketMessage(ws, {
             type: 'connection_established',
             userAddress: userAddress.toLowerCase(),
-            message: 'Connected to dead hand monitoring',
+            message: 'Connected to dead man switch monitoring',
             timestamp: new Date().toISOString(),
           });
           
@@ -274,29 +274,29 @@ export class DeadHandServer {
 
 
   /**
-   * Handle dead hand check when cron job triggers
+   * Handle dead man switch check when cron job triggers
    */
   private async handleDeadHandCheck(userAddress: string): Promise<void> {
     try {
-      console.log(`Executing dead hand check for ${userAddress}`);
+      console.log(`Executing dead man switch check for ${userAddress}`);
       
       // Get delegation again to ensure we have the latest data
       const delegation = await this.db.getDelegation(userAddress);
       if (!delegation) {
-        console.error(`No delegation found for user ${userAddress} during dead hand check`);
+        console.error(`No delegation found for user ${userAddress} during dead man switch check`);
         return;
       }
 
-      // Execute dead hand check
+      // Execute dead man switch check
       const result = await this.executeDeadHandCheck(userAddress, delegation.timeout);
       
-      console.log(`Dead hand check completed for ${userAddress}. Activity found: ${result.activityFound}`);
+      console.log(`dead man switch check completed for ${userAddress}. Activity found: ${result.activityFound}`);
       console.log(`Beneficiary address: ${delegation.beneficiaryAddress}`);
       console.log(`Smart account (kernel client): ${delegation.kernelClient}`);
       
       if (!result.activityFound) {
-        // No activity found - trigger dead hand switch
-        console.log(`No activity found for ${userAddress}. Triggering dead hand switch.`);
+        // No activity found - trigger dead man switch switch
+        console.log(`No activity found for ${userAddress}. Triggering dead man switch switch.`);
         await this.triggerDeadHandSwitch(userAddress, delegation.beneficiaryAddress, delegation.kernelClient);
       } else {
         // Activity found - reset the timer
@@ -305,7 +305,7 @@ export class DeadHandServer {
       }
       
     } catch (error) {
-      console.error(`Error in dead hand check for ${userAddress}:`, error);
+      console.error(`Error in dead man switch check for ${userAddress}:`, error);
     }
   }
 
@@ -331,19 +331,19 @@ export class DeadHandServer {
       
     } catch (error) {
       console.error(`Twitter sync failed for ${userAddress}:`, error);
-      // Don't throw error - Twitter sync failure shouldn't break dead hand check
+      // Don't throw error - Twitter sync failure shouldn't break dead man switch check
     }
   }
 
   /**
-   * Execute dead hand check for a user
+   * Execute dead man switch check for a user
    */
   private async executeDeadHandCheck(userAddress: string, timeoutSeconds: number): Promise<DeadHandCheckResult> {
     try {
-      console.log(`Executing dead hand check for ${userAddress} (timeout: ${timeoutSeconds}s)`);
+      console.log(`Executing dead man switch check for ${userAddress} (timeout: ${timeoutSeconds}s)`);
       
       // Broadcast initial status
-      this.broadcastAIStatus(userAddress, 'Starting dead hand check...', 'info');
+      this.broadcastAIStatus(userAddress, 'Starting dead man switch check...', 'info');
       
       // Create AI prompt for recent transaction check
       const prompt = `Check for ALL token transfers (both received and sent) for wallet address ${userAddress} on polygon in the last ${timeoutSeconds} seconds. Include both ERC-20 tokens and native transfers. Provide a detailed analysis of any activity found.`;
@@ -387,11 +387,11 @@ export class DeadHandServer {
       // Broadcast final result
       this.broadcastDeadHandResult(deadHandResult);
 
-      console.log(`Dead hand check completed for ${userAddress}. Activity found: ${activityFound}`);
+      console.log(`dead man switch check completed for ${userAddress}. Activity found: ${activityFound}`);
       return deadHandResult;
 
     } catch (error) {
-      console.error(`Error executing dead hand check for ${userAddress}:`, error);
+      console.error(`Error executing dead man switch check for ${userAddress}:`, error);
       
       // Broadcast error status
       this.broadcastAIStatus(userAddress, `Error: ${error}`, 'error');
@@ -482,16 +482,16 @@ export class DeadHandServer {
   }
 
   /**
-   * Trigger dead hand switch using LiFi to bridge all tokens to USDC
+   * Trigger dead man switch switch using LiFi to bridge all tokens to USDC
    */
   private async triggerDeadHandSwitch(userAddress: string, beneficiaryAddress: string, kernelClient: string): Promise<void> {
     try {
-      console.log(`🚨 DEAD HAND SWITCH TRIGGERED for ${userAddress}`);
+      console.log(`🚨 dead man switch SWITCH TRIGGERED for ${userAddress}`);
       console.log(`Beneficiary Address: ${beneficiaryAddress}`);
       console.log(`Smart Account (Kernel Client): ${kernelClient}`);
       
-      // Broadcast dead hand switch initiation
-      this.broadcastAIStatus(userAddress, '🚨 DEAD HAND SWITCH INITIATED', 'deadhand_initiated');
+      // Broadcast dead man switch switch initiation
+      this.broadcastAIStatus(userAddress, '🚨 dead man switch SWITCH INITIATED', 'deadhand_initiated');
       this.broadcastAIStatus(userAddress, `Beneficiary Address: ${beneficiaryAddress}`, 'beneficiary_address');
       // this.broadcastAIStatus(userAddress, `Smart Account: ${kernelClient}`, 'smart_account');
       
@@ -501,7 +501,7 @@ export class DeadHandServer {
       
       if (tokenBalances.length === 0) {
         this.broadcastAIStatus(userAddress, 'No tokens found to bridge', 'deadhand_step');
-        this.broadcastAIStatus(userAddress, '✅ Dead hand switch completed - no action needed', 'deadhand_completed');
+        this.broadcastAIStatus(userAddress, '✅ dead man switch switch completed - no action needed', 'deadhand_completed');
         return;
       }
       
@@ -530,7 +530,7 @@ export class DeadHandServer {
           'deadhand_user_action_required'
         );
         
-        console.log(`Dead hand switch prepared ${results.transactions.length} transactions for user ${userAddress}`);
+        console.log(`dead man switch switch prepared ${results.transactions.length} transactions for user ${userAddress}`);
         console.log(`Transactions require user signature and execution`);
         
         // Broadcast the transaction data to the user
@@ -555,19 +555,19 @@ export class DeadHandServer {
         );
         
         if (successfulTransfers === totalTransfers) {
-          this.broadcastAIStatus(userAddress, '✅ Dead hand switch completed successfully', 'deadhand_completed');
+          this.broadcastAIStatus(userAddress, '✅ dead man switch switch completed successfully', 'deadhand_completed');
         } else {
-          this.broadcastAIStatus(userAddress, `⚠️ Dead hand switch completed with ${totalTransfers - successfulTransfers} failures`, 'deadhand_completed');
+          this.broadcastAIStatus(userAddress, `⚠️ dead man switch switch completed with ${totalTransfers - successfulTransfers} failures`, 'deadhand_completed');
         }
         
-        console.log(`Dead hand switch executed for user ${userAddress} with beneficiary address ${beneficiaryAddress}`);
+        console.log(`dead man switch switch executed for user ${userAddress} with beneficiary address ${beneficiaryAddress}`);
         console.log(`Smart account (kernel client): ${kernelClient}`);
         console.log(`Bridge results: ${successfulTransfers}/${totalTransfers} successful`);
       }
       
     } catch (error) {
-      console.error(`Error triggering dead hand switch for ${userAddress}:`, error);
-      this.broadcastAIStatus(userAddress, `❌ Dead hand switch failed: ${error}`, 'deadhand_error');
+      console.error(`Error triggering dead man switch switch for ${userAddress}:`, error);
+      this.broadcastAIStatus(userAddress, `❌ dead man switch switch failed: ${error}`, 'deadhand_error');
     }
   }
 
@@ -600,7 +600,7 @@ export class DeadHandServer {
   }
 
   /**
-   * Reset dead hand timer by scheduling a new cron job
+   * Reset dead man switch timer by scheduling a new cron job
    */
   private async resetDeadHandTimer(userAddress: string, timeoutSeconds: number): Promise<void> {
     try {
@@ -611,7 +611,7 @@ export class DeadHandServer {
         console.log(`Cancelled existing job ${existingJob.id} for ${userAddress}`);
       }
 
-      // Schedule new dead hand check
+      // Schedule new dead man switch check
       const scheduledAt = new Date(Date.now() + timeoutSeconds * 1000);
       const jobId = this.cronScheduler.scheduleDeadHandCheck(
         userAddress,
@@ -625,7 +625,7 @@ export class DeadHandServer {
       this.broadcastTimerResetEvent(userAddress, timeoutSeconds, scheduledAt);
       
     } catch (error) {
-      console.error(`Error resetting dead hand timer for ${userAddress}:`, error);
+      console.error(`Error resetting dead man switch timer for ${userAddress}:`, error);
     }
   }
 
@@ -653,7 +653,7 @@ export class DeadHandServer {
   }
 
   /**
-   * Broadcast dead hand result to specific user
+   * Broadcast dead man switch result to specific user
    */
   private broadcastDeadHandResult(result: DeadHandCheckResult): void {
     const message = {
@@ -676,7 +676,7 @@ export class DeadHandServer {
   }
 
   /**
-   * Broadcast dead hand switch event to specific user
+   * Broadcast dead man switch switch event to specific user
    */
   private broadcastDeadHandSwitchEvent(userAddress: string, beneficiaryAddress: string, kernelClient: string, results?: any[]): void {
     const message = {
@@ -685,7 +685,7 @@ export class DeadHandServer {
       data: {
         beneficiaryAddress,
         smartAccount: kernelClient,
-        message: 'Dead hand switch has been triggered',
+        message: 'dead man switch switch has been triggered',
         results: results || [],
         timestamp: new Date().toISOString()
       },
@@ -820,17 +820,17 @@ export class DeadHandServer {
 
       // Start server
       this.server.listen(this.port, () => {
-        console.log(`Dead Hand Switch Server started successfully`);
+        console.log(`dead man switch Switch Server started successfully`);
         console.log(`HTTP endpoint: http://localhost:${this.port}`);
         console.log(`WebSocket endpoint: ws://localhost:${this.port}`);
         console.log('Available endpoints:');
-        console.log('- POST /initiate-deadhand: Initiate dead hand check');
+        console.log('- POST /initiate-deadhand: Initiate dead man switch check');
         console.log('- GET /health: Health check');
         console.log('- GET /jobs: Get active jobs');
         console.log('- DELETE /jobs/:jobId: Cancel a job');
       });
     } catch (error) {
-      console.error('Failed to start Dead Hand Switch Server:', error);
+      console.error('Failed to start dead man switch Switch Server:', error);
       throw error;
     }
   }
@@ -849,16 +849,16 @@ export class DeadHandServer {
         this.server.close();
       }
       
-      console.log('Dead Hand Switch Server stopped');
+      console.log('dead man switch Switch Server stopped');
     } catch (error) {
-      console.error('Error stopping Dead Hand Switch Server:', error);
+      console.error('Error stopping dead man switch Switch Server:', error);
     }
   }
 }
 
 async function main() {
   try {
-    console.log('Starting Dead Hand Switch Server...');
+    console.log('Starting dead man switch Switch Server...');
 
     // Check for required environment variables
     if (!process.env.OPENROUTER_API_KEY) {
@@ -876,19 +876,19 @@ async function main() {
 
     // Handle graceful shutdown
     process.on('SIGINT', async () => {
-      console.log('\nShutting down Dead Hand Switch Server...');
+      console.log('\nShutting down dead man switch Switch Server...');
       await server.stop();
       process.exit(0);
     });
 
     process.on('SIGTERM', async () => {
-      console.log('\nShutting down Dead Hand Switch Server...');
+      console.log('\nShutting down dead man switch Switch Server...');
       await server.stop();
       process.exit(0);
     });
 
   } catch (error) {
-    console.error('Failed to start Dead Hand Switch Server:', error);
+    console.error('Failed to start dead man switch Switch Server:', error);
     process.exit(1);
   }
 }

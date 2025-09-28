@@ -1,4 +1,4 @@
-// LiFi SDK types for dead hand switch implementation
+// LiFi SDK types for dead man switch switch implementation
 
 export interface Token {
   address: string;

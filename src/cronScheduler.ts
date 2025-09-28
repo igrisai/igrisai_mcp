@@ -5,7 +5,7 @@ export class CronScheduler {
   private scheduledTasks: Map<string, NodeJS.Timeout> = new Map();
 
   /**
-   * Schedule a dead hand check for a user
+   * Schedule a dead man switch check for a user
    */
   scheduleDeadHandCheck(
     userAddress: string,
@@ -29,14 +29,14 @@ export class CronScheduler {
     // Schedule the task to run once after timeoutSeconds
     const timeoutId = setTimeout(async () => {
       try {
-        console.log(`Executing dead hand check for ${userAddress}`);
+        console.log(`Executing dead man switch check for ${userAddress}`);
         await callback(userAddress);
         
         // Mark as executed and clean up
         job.isExecuted = true;
         this.cleanupJob(jobId);
       } catch (error) {
-        console.error(`Error executing dead hand check for ${userAddress}:`, error);
+        console.error(`Error executing dead man switch check for ${userAddress}:`, error);
         // Still clean up on error to prevent memory leaks
         job.isExecuted = true;
         this.cleanupJob(jobId);
@@ -46,12 +46,12 @@ export class CronScheduler {
     // Store the timeout ID instead of cron task
     this.scheduledTasks.set(jobId, timeoutId);
 
-    console.log(`Scheduled dead hand check for ${userAddress} in ${timeoutSeconds} seconds (Job ID: ${jobId})`);
+    console.log(`Scheduled dead man switch check for ${userAddress} in ${timeoutSeconds} seconds (Job ID: ${jobId})`);
     return jobId;
   }
 
   /**
-   * Cancel a scheduled dead hand check
+   * Cancel a scheduled dead man switch check
    */
   cancelDeadHandCheck(jobId: string): boolean {
     const timeoutId = this.scheduledTasks.get(jobId);
@@ -59,7 +59,7 @@ export class CronScheduler {
       clearTimeout(timeoutId);
       this.scheduledTasks.delete(jobId);
       this.jobs.delete(jobId);
-      console.log(`Cancelled dead hand check job: ${jobId}`);
+      console.log(`Cancelled dead man switch check job: ${jobId}`);
       return true;
     }
     return false;

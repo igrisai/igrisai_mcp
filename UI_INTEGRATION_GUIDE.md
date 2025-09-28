@@ -1,8 +1,8 @@
-# Dead Hand Switch - UI Integration Guide
+# dead man switch Switch - UI Integration Guide
 
 ## Overview
 
-This guide covers how to integrate the Dead Hand Switch system with your frontend UI, including triggering dead hand checks, listening to real-time events, and handling all the data flows.
+This guide covers how to integrate the dead man switch Switch system with your frontend UI, including triggering dead man switch checks, listening to real-time events, and handling all the data flows.
 
 ## 🚀 Quick Start
 
@@ -31,7 +31,7 @@ class DeadHandClient {
     this.ws = new WebSocket(WS_URL);
     
     this.ws.onopen = () => {
-      console.log('Connected to Dead Hand Switch Server');
+      console.log('Connected to dead man switch Switch Server');
       // Send user identification
       this.send({
         type: 'subscribe_token_activity',
@@ -75,7 +75,7 @@ class DeadHandClient {
 
 ## 🎯 Core Integration Points
 
-### 1. Trigger Dead Hand Check
+### 1. Trigger dead man switch Check
 
 ```typescript
 async function initiateDeadHand(userAddress: string): Promise<InitiateDeadHandResponse> {
@@ -97,7 +97,7 @@ async function initiateDeadHand(userAddress: string): Promise<InitiateDeadHandRe
     const result: InitiateDeadHandResponse = await response.json();
     return result;
   } catch (error) {
-    console.error('Failed to initiate dead hand:', error);
+    console.error('Failed to initiate dead man switch:', error);
     throw error;
   }
 }
@@ -107,7 +107,7 @@ const result = await initiateDeadHand('0xb6a9f22642c126d2700cbd17940b334e866234a
 console.log(result);
 // {
 //   "status": "success",
-//   "message": "Dead hand check initiated successfully",
+//   "message": "dead man switch check initiated successfully",
 //   "scheduledAt": "2024-01-15T10:30:00.000Z",
 //   "timeoutSeconds": 20
 // }
@@ -128,17 +128,17 @@ deadHandClient.on('ai_status_update', (data) => {
   updateAIStatusUI(data.data);
 });
 
-// Listen to dead hand check results
+// Listen to dead man switch check results
 deadHandClient.on('deadhand_check_result', (data) => {
-  console.log('Dead Hand Check Result:', data);
+  console.log('dead man switch Check Result:', data);
   
   // Update UI with final result
   updateDeadHandResultUI(data.data);
 });
 
-// Listen to dead hand switch triggers
+// Listen to dead man switch switch triggers
 deadHandClient.on('deadhand_switch_triggered', (data) => {
-  console.log('Dead Hand Switch Triggered!', data);
+  console.log('dead man switch Switch Triggered!', data);
   
   // Show critical alert to user
   showDeadHandAlert(data.data);
@@ -176,14 +176,14 @@ interface AIStatusUpdateEvent {
 // - 'reasoning': AI reasoning process
 // - 'twitter_check': Twitter activity check
 // - 'combined_analysis': Combined blockchain + Twitter analysis
-// - 'deadhand_initiated': Dead hand switch started
-// - 'deadhand_step': Dead hand execution step
-// - 'deadhand_completed': Dead hand switch completed
-// - 'deadhand_error': Dead hand switch error
+// - 'deadhand_initiated': dead man switch switch started
+// - 'deadhand_step': dead man switch execution step
+// - 'deadhand_completed': dead man switch switch completed
+// - 'deadhand_error': dead man switch switch error
 // - 'error': General error
 ```
 
-### 2. Dead Hand Check Result Events
+### 2. dead man switch Check Result Events
 
 ```typescript
 interface DeadHandCheckResultEvent {
@@ -198,7 +198,7 @@ interface DeadHandCheckResultEvent {
 }
 ```
 
-### 3. Dead Hand Switch Triggered Events
+### 3. dead man switch Switch Triggered Events
 
 ```typescript
 interface DeadHandSwitchEvent {
@@ -230,7 +230,7 @@ interface TimerResetEvent {
 
 ## 🎨 UI Implementation Examples
 
-### 1. Dead Hand Dashboard Component
+### 1. dead man switch Dashboard Component
 
 ```tsx
 import React, { useState, useEffect } from 'react';
@@ -270,7 +270,7 @@ const DeadHandDashboard: React.FC<DeadHandDashboardProps> = ({ userAddress }) =>
 
     client.on('deadhand_switch_triggered', (data) => {
       setIsActive(false);
-      alert(`🚨 Dead Hand Switch Triggered! Smart Account: ${data.data.smartAccount}`);
+      alert(`🚨 dead man switch Switch Triggered! Smart Account: ${data.data.smartAccount}`);
     });
 
     return () => {
@@ -286,13 +286,13 @@ const DeadHandDashboard: React.FC<DeadHandDashboardProps> = ({ userAddress }) =>
         setTimeRemaining(result.timeoutSeconds || 20);
       }
     } catch (error) {
-      console.error('Failed to start dead hand:', error);
+      console.error('Failed to start dead man switch:', error);
     }
   };
 
   return (
     <div className="dead-hand-dashboard">
-      <h2>Dead Hand Switch</h2>
+      <h2>dead man switch Switch</h2>
       
       <div className="status-section">
         <div className={`status-indicator ${isActive ? 'active' : 'inactive'}`}>
@@ -325,7 +325,7 @@ const DeadHandDashboard: React.FC<DeadHandDashboardProps> = ({ userAddress }) =>
         disabled={isActive}
         className="start-button"
       >
-        {isActive ? 'Dead Hand Active' : 'Start Dead Hand'}
+        {isActive ? 'dead man switch Active' : 'Start dead man switch'}
       </button>
     </div>
   );
@@ -492,12 +492,12 @@ class DeadHandIntegration {
       this.updateAIStatus(data.data);
     });
 
-    // Dead Hand Results
+    // dead man switch Results
     this.client.on('deadhand_check_result', (data) => {
       this.handleDeadHandResult(data.data);
     });
 
-    // Dead Hand Switch Triggered
+    // dead man switch Switch Triggered
     this.client.on('deadhand_switch_triggered', (data) => {
       this.handleDeadHandSwitch(data.data);
     });
@@ -513,7 +513,7 @@ class DeadHandIntegration {
       const result = await initiateDeadHand(this.userAddress);
       return result.status === 'success';
     } catch (error) {
-      console.error('Failed to start dead hand:', error);
+      console.error('Failed to start dead man switch:', error);
       return false;
     }
   }
@@ -525,14 +525,14 @@ class DeadHandIntegration {
   }
 
   private handleDeadHandResult(result: any) {
-    // Handle dead hand check result
+    // Handle dead man switch check result
     console.log('Activity Found:', result.activityFound);
     // Update UI accordingly
   }
 
   private handleDeadHandSwitch(data: any) {
-    // Handle dead hand switch trigger
-    console.log('Dead Hand Switch Triggered!');
+    // Handle dead man switch switch trigger
+    console.log('dead man switch Switch Triggered!');
     // Show critical alert, update UI
   }
 
@@ -573,13 +573,13 @@ async function initiateDeadHand(userAddress: string) {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Failed to initiate dead hand');
+      throw new Error(error.message || 'Failed to initiate dead man switch');
     }
 
     return await response.json();
   } catch (error) {
     // Handle network errors, validation errors, etc.
-    console.error('Dead Hand Initiation Error:', error);
+    console.error('dead man switch Initiation Error:', error);
     throw error;
   }
 }
@@ -619,4 +619,4 @@ class MobileDeadHandClient {
 }
 ```
 
-This guide provides everything you need to integrate the Dead Hand Switch system with your UI, including real-time event handling, error management, and complete examples for both web and mobile applications.
+This guide provides everything you need to integrate the dead man switch Switch system with your UI, including real-time event handling, error management, and complete examples for both web and mobile applications.

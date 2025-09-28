@@ -1,4 +1,4 @@
--- Dead Hand Switch Database Schema
+-- dead man switch Switch Database Schema
 -- PostgreSQL Database Setup
 
 -- Create database (run this as superuser)

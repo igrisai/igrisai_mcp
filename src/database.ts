@@ -42,7 +42,7 @@ export class DatabaseManager {
   }
 
   /**
-   * Get dead hand config for a user address with retry logic
+   * Get dead man switch config for a user address with retry logic
    */
   async getDeadHandConfig(userAddress: string): Promise<DeadHandConfig | null> {
     const maxRetries = 3;
@@ -93,7 +93,7 @@ export class DatabaseManager {
   }
 
   /**
-   * Create a new dead hand config
+   * Create a new dead man switch config
    */
   async createDeadHandConfig(config: Omit<DeadHandConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<DeadHandConfig> {
     const maxRetries = 3;
@@ -145,7 +145,7 @@ export class DatabaseManager {
   }
 
   /**
-   * Update dead hand config
+   * Update dead man switch config
    */
   async updateDeadHandConfig(userAddress: string, updates: Partial<DeadHandConfig>): Promise<DeadHandConfig | null> {
     const maxRetries = 3;

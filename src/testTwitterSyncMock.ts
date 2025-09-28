@@ -28,17 +28,17 @@ class TwitterSyncMockTest {
     const now = new Date();
     
     const mockTweets = [
-      "Just deployed a new feature to our dead hand switch system! 🚀",
+      "Just deployed a new feature to our dead man switch switch system! 🚀",
       "Working on Hypergraph integration for Twitter activity monitoring 📊",
       "Testing the MCP client with Graph protocol data 🔗",
-      "Dead hand switch is looking solid! Great progress today 💪",
+      "dead man switch switch is looking solid! Great progress today 💪",
       "Integrating AI with blockchain data for automated monitoring 🤖"
     ];
 
     const mockLikes = [
       "Love this approach to decentralized monitoring!",
       "Great work on the Hypergraph integration!",
-      "This dead hand switch concept is brilliant 🔥",
+      "This dead man switch switch concept is brilliant 🔥",
       "Amazing progress on the MCP client!",
       "The AI integration looks promising 🤖"
     ];

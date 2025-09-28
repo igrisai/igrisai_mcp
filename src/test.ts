@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import axios from 'axios';
 
-// WebSocket client test for Dead Hand Switch System
+// WebSocket client test for dead man switch Switch System
 class TokenActivityTestClient {
   private ws: WebSocket;
   private userAddress: string;
@@ -16,7 +16,7 @@ class TokenActivityTestClient {
 
   private setupEventHandlers(): void {
     this.ws.on('open', () => {
-      console.log('✅ Connected to Dead Hand Switch WebSocket Server');
+      console.log('✅ Connected to dead man switch Switch WebSocket Server');
       this.startTests();
     });
 
@@ -71,7 +71,7 @@ class TokenActivityTestClient {
         break;
       
       case 'deadhand_check_result':
-        console.log(`🔍 Dead Hand Check Result:`);
+        console.log(`🔍 dead man switch Check Result:`);
         console.log(`  👤 User: ${message.userAddress}`);
         console.log(`  🤖 AI Response: ${message.data?.aiResponse}`);
         console.log(`  📊 Activity Found: ${message.data?.activityFound}`);
@@ -79,14 +79,14 @@ class TokenActivityTestClient {
         break;
       
       case 'deadhand_switch_triggered':
-        console.log(`🚨 DEAD HAND SWITCH TRIGGERED:`);
+        console.log(`🚨 dead man switch SWITCH TRIGGERED:`);
         console.log(`  👤 User: ${message.userAddress}`);
         console.log(`  🏦 Smart Account: ${message.data?.smartAccount}`);
         console.log(`  📝 Message: ${message.data?.message}`);
         break;
       
       case 'deadhand_timer_reset':
-        console.log(`⏰ DEAD HAND TIMER RESET:`);
+        console.log(`⏰ dead man switch TIMER RESET:`);
         console.log(`  👤 User: ${message.userAddress}`);
         console.log(`  ⏱️  Timeout: ${message.data?.timeoutSeconds} seconds`);
         console.log(`  📅 Scheduled At: ${message.data?.scheduledAt}`);
@@ -111,11 +111,11 @@ class TokenActivityTestClient {
   }
 
   private startTests(): void {
-    console.log('\n🧪 Starting Dead Hand Switch Test...\n');
+    console.log('\n🧪 Starting dead man switch Switch Test...\n');
 
-    // Test: Call initiate dead hand endpoint
+    // Test: Call initiate dead man switch endpoint
     setTimeout(() => {
-      console.log('🚀 Initiating dead hand check...');
+      console.log('🚀 Initiating dead man switch check...');
       this.initiateDeadHand();
     }, 1000);
 
@@ -125,7 +125,7 @@ class TokenActivityTestClient {
   }
 
 
-  // Initiate dead hand check via HTTP endpoint
+  // Initiate dead man switch check via HTTP endpoint
   private async initiateDeadHand(): Promise<void> {
     try {
       console.log(`📡 Calling POST ${this.httpBaseUrl}/initiate-deadhand`);
@@ -139,7 +139,7 @@ class TokenActivityTestClient {
         }
       });
 
-      console.log('✅ Dead hand check initiated successfully:');
+      console.log('✅ dead man switch check initiated successfully:');
       console.log(`  📊 Status: ${response.data.status}`);
       console.log(`  📝 Message: ${response.data.message}`);
       if (response.data.scheduledAt) {
@@ -153,7 +153,7 @@ class TokenActivityTestClient {
       if (axios.isAxiosError(error)) {
         console.error('❌ HTTP Error:', error.response?.data || error.message);
       } else {
-        console.error('❌ Error initiating dead hand check:', error);
+        console.error('❌ Error initiating dead man switch check:', error);
       }
     }
   }
@@ -168,7 +168,7 @@ class TokenActivityTestClient {
 
 // Run the test
 async function runWebSocketTest() {
-  console.log('🚀 Starting Dead Hand Switch Test Client\n');
+  console.log('🚀 Starting dead man switch Switch Test Client\n');
   
   const userAddress = '0xb6A9f22642C126D2700CbD17940b334e866234ae'; // STRICT: DONT MODIFY THIS
   
