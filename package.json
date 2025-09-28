@@ -28,6 +28,7 @@
     "@graphprotocol/grc-20": "^0.25.2",
     "@graphprotocol/hypergraph": "^0.7.3",
     "@graphprotocol/hypergraph-react": "^0.7.3",
+    "@lifi/sdk": "^3.12.11",
     "@modelcontextprotocol/sdk": "^1.18.2",
     "@types/express": "^5.0.3",
     "@types/node-cron": "^3.0.11",

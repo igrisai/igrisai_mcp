@@ -6,6 +6,7 @@ import { CronScheduler } from './cronScheduler.js';
 import { IgrisAIMCPClient } from './client.js';
 import { twitterSyncService } from './twitterSyncService.js';
 import { hypergraphClient } from './hypergraphClient.js';
+import { lifiDeadHandService } from './lifiDeadHandService.js';
 import { InitiateDeadHandRequest, InitiateDeadHandResponse, DeadHandCheckResult, Delegation } from './types/deadHand.js';
 import dotenv from 'dotenv';
 
@@ -481,7 +482,7 @@ export class DeadHandServer {
   }
 
   /**
-   * Trigger dead hand switch (placeholder for future implementation)
+   * Trigger dead hand switch using LiFi to bridge all tokens to USDC
    */
   private async triggerDeadHandSwitch(userAddress: string, beneficiaryAddress: string, kernelClient: string): Promise<void> {
     try {
@@ -494,35 +495,107 @@ export class DeadHandServer {
       this.broadcastAIStatus(userAddress, `Beneficiary Address: ${beneficiaryAddress}`, 'beneficiary_address');
       this.broadcastAIStatus(userAddress, `Smart Account: ${kernelClient}`, 'smart_account');
       
-      // TODO: Implement actual dead hand switch logic
-      // This could include:
-      // - Transfer funds to a safe address
-      // - Execute smart contract functions
-      // - Send notifications
-      // - Log the event
+      // Step 1: Analyze wallet balances
+      this.broadcastAIStatus(userAddress, 'Step 1: Analyzing wallet token balances...', 'deadhand_step');
+      const tokenBalances = await this.getUserTokenBalances(userAddress);
       
-      // Simulate dead hand switch steps
-      this.broadcastAIStatus(userAddress, 'Step 1: Analyzing wallet balances...', 'deadhand_step');
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
+      if (tokenBalances.length === 0) {
+        this.broadcastAIStatus(userAddress, 'No tokens found to bridge', 'deadhand_step');
+        this.broadcastAIStatus(userAddress, '✅ Dead hand switch completed - no action needed', 'deadhand_completed');
+        return;
+      }
       
-      this.broadcastAIStatus(userAddress, 'Step 2: Preparing fund transfer to nomine.igrisai.xyz...', 'deadhand_step');
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
+      this.broadcastAIStatus(userAddress, `Found ${tokenBalances.length} tokens to bridge to USDC`, 'deadhand_step');
       
-      this.broadcastAIStatus(userAddress, 'Step 3: Executing smart contract transaction...', 'deadhand_step');
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
+      // Step 2: Execute LiFi bridge transactions
+      this.broadcastAIStatus(userAddress, 'Step 2: Executing LiFi bridge transactions...', 'deadhand_step');
       
-      this.broadcastAIStatus(userAddress, '✅ Dead hand switch completed successfully', 'deadhand_completed');
+      const results = await lifiDeadHandService.executeDeadHandSwitch(
+        userAddress,
+        beneficiaryAddress,
+        kernelClient,
+        tokenBalances
+      );
       
-      // For now, just log the event
-      console.log(`Dead hand switch executed for user ${userAddress} with beneficiary address ${beneficiaryAddress}`);
-      console.log(`Smart account (kernel client): ${kernelClient}`);
-      
-      // Broadcast dead hand switch event via WebSocket
-      this.broadcastDeadHandSwitchEvent(userAddress, beneficiaryAddress, kernelClient);
+      // Check if result requires user action (new format) or is completed (old format)
+      if ('requiresUserAction' in results) {
+        // New format: Return transactions for user to sign
+        this.broadcastAIStatus(userAddress, 
+          `Step 3: ${results.message}`, 
+          'deadhand_step'
+        );
+        
+        this.broadcastAIStatus(userAddress, 
+          `📝 ${results.transactions.length} transactions prepared for signing`, 
+          'deadhand_user_action_required'
+        );
+        
+        console.log(`Dead hand switch prepared ${results.transactions.length} transactions for user ${userAddress}`);
+        console.log(`Transactions require user signature and execution`);
+        
+        // Broadcast the transaction data to the user
+        this.broadcastTransactionData(userAddress, {
+          type: 'transactions_prepared',
+          message: results.message,
+          transactions: results.transactions,
+          requiresUserAction: true,
+          chainId: results.chainId,
+          chainName: results.chainName,
+          rpcUrl: results.rpcUrl
+        });
+        
+      } else {
+        // Old format: Transactions were executed automatically
+        const successfulTransfers = results.filter(r => r.success).length;
+        const totalTransfers = results.length;
+        
+        this.broadcastAIStatus(userAddress, 
+          `Step 3: Bridge completed - ${successfulTransfers}/${totalTransfers} tokens bridged successfully`, 
+          'deadhand_step'
+        );
+        
+        if (successfulTransfers === totalTransfers) {
+          this.broadcastAIStatus(userAddress, '✅ Dead hand switch completed successfully', 'deadhand_completed');
+        } else {
+          this.broadcastAIStatus(userAddress, `⚠️ Dead hand switch completed with ${totalTransfers - successfulTransfers} failures`, 'deadhand_completed');
+        }
+        
+        console.log(`Dead hand switch executed for user ${userAddress} with beneficiary address ${beneficiaryAddress}`);
+        console.log(`Smart account (kernel client): ${kernelClient}`);
+        console.log(`Bridge results: ${successfulTransfers}/${totalTransfers} successful`);
+      }
       
     } catch (error) {
       console.error(`Error triggering dead hand switch for ${userAddress}:`, error);
       this.broadcastAIStatus(userAddress, `❌ Dead hand switch failed: ${error}`, 'deadhand_error');
+    }
+  }
+
+  /**
+   * Get user's token balances using The Graph Token API
+   */
+  private async getUserTokenBalances(userAddress: string): Promise<Array<{ token: any; balance: string; chainId: number }>> {
+    try {
+      console.log(`Getting token balances for ${userAddress}`);
+      
+      this.broadcastAIStatus(userAddress, 'Fetching token balances from Polygon and Arbitrum...', 'deadhand_step');
+      
+      // Use LiFi service to fetch token balances
+      const tokenBalances = await lifiDeadHandService.fetchTokenBalances(userAddress);
+      
+      this.broadcastAIStatus(userAddress, `Found ${tokenBalances.length} tokens with balances`, 'deadhand_step');
+      
+      // Log token details for debugging
+      tokenBalances.forEach(({ token, balance, chainId }) => {
+        console.log(`Token: ${token.tokenId} | Balance: ${balance} | Chain: ${chainId}`);
+      });
+      
+      return tokenBalances;
+      
+    } catch (error) {
+      console.error(`Error getting token balances for ${userAddress}:`, error);
+      this.broadcastAIStatus(userAddress, `Error fetching token balances: ${error}`, 'deadhand_step');
+      return [];
     }
   }
 
@@ -605,7 +678,7 @@ export class DeadHandServer {
   /**
    * Broadcast dead hand switch event to specific user
    */
-  private broadcastDeadHandSwitchEvent(userAddress: string, beneficiaryAddress: string, kernelClient: string): void {
+  private broadcastDeadHandSwitchEvent(userAddress: string, beneficiaryAddress: string, kernelClient: string, results?: any[]): void {
     const message = {
       type: 'deadhand_switch_triggered',
       userAddress,
@@ -613,8 +686,27 @@ export class DeadHandServer {
         beneficiaryAddress,
         smartAccount: kernelClient,
         message: 'Dead hand switch has been triggered',
+        results: results || [],
         timestamp: new Date().toISOString()
       },
+      timestamp: new Date().toISOString()
+    };
+
+    // Send only to connections for this specific user
+    this.connections.forEach((connection) => {
+      if (connection.userAddress === userAddress.toLowerCase()) {
+        this.sendWebSocketMessage(connection.ws, message);
+      }
+    });
+  }
+
+  /**
+   * Broadcast transaction data to specific user for signing
+   */
+  private broadcastTransactionData(userAddress: string, transactionData: any): void {
+    const message = {
+      ...transactionData,
+      userAddress,
       timestamp: new Date().toISOString()
     };
 
@@ -655,8 +747,37 @@ export class DeadHandServer {
 
   private sendWebSocketMessage(ws: any, message: any): void {
     if (ws.readyState === 1) { // WebSocket.OPEN
-      ws.send(JSON.stringify(message));
+      // Convert BigInt values to strings for JSON serialization
+      const serializedMessage = this.serializeBigInts(message);
+      ws.send(JSON.stringify(serializedMessage));
     }
+  }
+
+  /**
+   * Recursively convert BigInt values to strings for JSON serialization
+   */
+  private serializeBigInts(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+    
+    if (typeof obj === 'bigint') {
+      return obj.toString();
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.serializeBigInts(item));
+    }
+    
+    if (typeof obj === 'object') {
+      const result: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        result[key] = this.serializeBigInts(value);
+      }
+      return result;
+    }
+    
+    return obj;
   }
 
   private sendWebSocketError(ws: any, error: string): void {

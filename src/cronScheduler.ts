@@ -1,9 +1,8 @@
-import * as cron from 'node-cron';
 import { CronJob } from './types/deadHand.js';
 
 export class CronScheduler {
   private jobs: Map<string, CronJob> = new Map();
-  private scheduledTasks: Map<string, cron.ScheduledTask> = new Map();
+  private scheduledTasks: Map<string, NodeJS.Timeout> = new Map();
 
   /**
    * Schedule a dead hand check for a user
@@ -27,27 +26,25 @@ export class CronScheduler {
 
     this.jobs.set(jobId, job);
 
-    // Schedule the task
-    const task = cron.schedule(
-      `*/${timeoutSeconds} * * * * *`, // Run every X seconds
-      async () => {
-        try {
-          console.log(`Executing dead hand check for ${userAddress}`);
-          await callback(userAddress);
-          
-          // Mark as executed and clean up
-          job.isExecuted = true;
-          this.cleanupJob(jobId);
-        } catch (error) {
-          console.error(`Error executing dead hand check for ${userAddress}:`, error);
-        }
+    // Schedule the task to run once after timeoutSeconds
+    const timeoutId = setTimeout(async () => {
+      try {
+        console.log(`Executing dead hand check for ${userAddress}`);
+        await callback(userAddress);
+        
+        // Mark as executed and clean up
+        job.isExecuted = true;
+        this.cleanupJob(jobId);
+      } catch (error) {
+        console.error(`Error executing dead hand check for ${userAddress}:`, error);
+        // Still clean up on error to prevent memory leaks
+        job.isExecuted = true;
+        this.cleanupJob(jobId);
       }
-    );
+    }, timeoutSeconds * 1000);
 
-    this.scheduledTasks.set(jobId, task);
-
-    // Start the task
-    task.start();
+    // Store the timeout ID instead of cron task
+    this.scheduledTasks.set(jobId, timeoutId);
 
     console.log(`Scheduled dead hand check for ${userAddress} in ${timeoutSeconds} seconds (Job ID: ${jobId})`);
     return jobId;
@@ -57,9 +54,9 @@ export class CronScheduler {
    * Cancel a scheduled dead hand check
    */
   cancelDeadHandCheck(jobId: string): boolean {
-    const task = this.scheduledTasks.get(jobId);
-    if (task) {
-      task.stop();
+    const timeoutId = this.scheduledTasks.get(jobId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
       this.scheduledTasks.delete(jobId);
       this.jobs.delete(jobId);
       console.log(`Cancelled dead hand check job: ${jobId}`);
@@ -95,9 +92,9 @@ export class CronScheduler {
    * Clean up completed jobs
    */
   private cleanupJob(jobId: string): void {
-    const task = this.scheduledTasks.get(jobId);
-    if (task) {
-      task.stop();
+    const timeoutId = this.scheduledTasks.get(jobId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
       this.scheduledTasks.delete(jobId);
     }
     this.jobs.delete(jobId);
@@ -107,7 +104,7 @@ export class CronScheduler {
    * Clean up all jobs
    */
   cleanupAllJobs(): void {
-    this.scheduledTasks.forEach(task => task.stop());
+    this.scheduledTasks.forEach(timeoutId => clearTimeout(timeoutId));
     this.scheduledTasks.clear();
     this.jobs.clear();
     console.log('All cron jobs cleaned up');
